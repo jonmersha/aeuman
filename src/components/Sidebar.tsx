@@ -20,7 +20,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { profile, logout } = useAuth();
   
-  const isSuperAdmin = profile?.email === 'jonmersha@gmail.com' || profile?.email === 'beshegercom@gmail.com' || profile?.role === 'super_admin';
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },

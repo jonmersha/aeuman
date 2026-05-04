@@ -9,7 +9,7 @@ export const SettingsView: React.FC = () => {
   const [role, setRole] = useState(profile?.role || 'student');
   const [saving, setSaving] = useState(false);
 
-  const isSuperAdmin = profile?.role === 'super_admin' || profile?.email === 'jonmersha@gmail.com' || profile?.email === 'beshegercom@gmail.com';
+  const isSuperAdmin = profile?.role === 'super_admin';
 
   const handleSave = async () => {
     if (!profile || isSuperAdmin) return;

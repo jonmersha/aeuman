@@ -63,21 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unsubscribeProfile = onSnapshot(docRef, async (docSnap) => {
           if (docSnap.exists()) {
             const existingProfile = { ...docSnap.data(), uid: user.uid } as UserProfile;
-            // Force super_admin role for the primary admin email
-            if (user.email === 'beshegercom@gmail.com' && existingProfile.role !== 'super_admin') {
-              const updatedProfile = { ...existingProfile, role: 'super_admin' as UserRole };
-              await setDoc(docRef, updatedProfile);
-              setProfile(updatedProfile);
-            } else {
-              setProfile(existingProfile);
-            }
+            setProfile(existingProfile);
           } else {
-            const isFirstAdmin = user.email === 'beshegercom@gmail.com';
             const newProfile: UserProfile = {
               uid: user.uid,
               email: user.email || '',
               displayName: user.displayName || 'Anonymous',
-              role: isFirstAdmin ? 'super_admin' : 'pending',
+              role: 'pending',
               photoURL: user.photoURL || undefined,
               createdAt: Timestamp.now(),
               points: 0,
