@@ -82,7 +82,13 @@ export const LessonContent: React.FC<LessonContentProps> = ({
           )}
           
           {currentLesson.type === 'flashcards' ? (
-            <FlashcardViewer cards={currentLesson.flashcards || []} />
+            currentLesson.flashcards?.length > 0 ? (
+              <FlashcardViewer cards={currentLesson.flashcards} />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-700">
+                <p className="text-zinc-500 dark:text-zinc-400 font-medium">No flashcards are available for this lesson.</p>
+              </div>
+            )
           ) : (
             <div className="prose prose-zinc dark:prose-invert max-w-none shadow-sm p-4 rounded-xl border border-zinc-100 dark:border-zinc-800" dangerouslySetInnerHTML={{ __html: currentLesson.content || '<p>No detailed content provided for this lesson.</p>' }} />
           )}

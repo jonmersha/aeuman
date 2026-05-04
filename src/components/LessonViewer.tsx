@@ -467,8 +467,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
         {/* Course Content Outline (Left Sidebar) */}
         {isSidebarOpen && (
           <div className={cn(
-            "w-80 border-r border-zinc-200 dark:border-zinc-800 shrink-0 z-20 hidden md:block",
-            isMobile ? "absolute inset-0 z-50 w-full" : ""
+            "w-80 border-r border-zinc-200 dark:border-zinc-800 shrink-0 z-20",
+            isMobile ? "absolute inset-0 z-[100] w-full bg-white dark:bg-zinc-900" : "hidden md:block"
           )}>
             <Sidebar 
               isMobile={isMobile}
@@ -480,11 +480,15 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
               currentLesson={currentLesson}
               selectedSection={selectedSection}
               isViewingCourseOverview={isViewingCourseOverview}
+              onCloseSidebar={() => setIsSidebarOpen(false)}
               onViewOverview={() => {
                 setIsViewingCourseOverview(true);
                 setCurrentLesson(null);
                 setSelectedSection(null);
-                if (isMobile) setActiveTab('resources');
+                if (isMobile) {
+                  setIsSidebarOpen(false);
+                  setActiveTab('resources');
+                }
               }}
               onToggleSection={toggleSection}
               onToggleLesson={toggleLesson}
@@ -494,6 +498,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
                 setIsViewingCourseOverview(false);
                 setAudioUrl(null);
                 if (isMobile) {
+                  setIsSidebarOpen(false);
                   setActiveTab('resources');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
@@ -547,6 +552,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
                   currentLesson={currentLesson}
                   selectedSection={selectedSection}
                   isViewingCourseOverview={isViewingCourseOverview}
+                  onCloseSidebar={() => setIsSidebarOpen(false)}
                   onViewOverview={() => {
                     setIsViewingCourseOverview(true);
                     setCurrentLesson(null);

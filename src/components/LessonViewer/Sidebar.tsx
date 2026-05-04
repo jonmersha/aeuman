@@ -15,6 +15,7 @@ interface SidebarProps {
   selectedSection: any;
   isViewingCourseOverview: boolean;
   onViewOverview: () => void;
+  onCloseSidebar?: () => void;
   onToggleSection: (section: any) => void;
   onToggleLesson: (lessonId: string) => void;
   onSelectLesson: (lesson: any, section: any) => void;
@@ -32,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   selectedSection,
   isViewingCourseOverview,
   onViewOverview,
+  onCloseSidebar,
   onToggleSection,
   onToggleLesson,
   onSelectLesson,
@@ -44,6 +46,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <h3 className="font-bold text-zinc-900 dark:text-white text-sm">Course Contents</h3>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2.5 py-1 rounded-md">{progress}% COMPLETE</span>
+            {isMobile && (
+              <button 
+                onClick={onCloseSidebar} 
+                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            )}
           </div>
         </div>
         <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
