@@ -412,7 +412,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
-            className="p-2 hover:bg-white dark:bg-zinc-900/10 rounded-xl transition-colors"
+            className="p-2 hover:bg-white/10 rounded-xl transition-colors"
             title="Back to Courses"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -433,11 +433,11 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
         </div>
 
         <div className="flex items-center gap-2 md:gap-6">
-          <div className="hidden sm:flex items-center gap-1 bg-white dark:bg-zinc-900/5 rounded-xl p-1">
+          <div className="hidden sm:flex items-center gap-1 bg-white/10 rounded-xl p-1">
             <button 
               onClick={() => prevLesson && setCurrentLesson(prevLesson)}
               disabled={!prevLesson}
-              className="p-2 hover:bg-white dark:bg-zinc-900/10 disabled:opacity-20 rounded-lg transition-all"
+              className="p-2 hover:bg-white/10 disabled:opacity-20 rounded-lg transition-all"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -447,7 +447,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
             <button 
               onClick={() => nextLesson && setCurrentLesson(nextLesson)}
               disabled={!nextLesson}
-              className="p-2 hover:bg-white dark:bg-zinc-900/10 disabled:opacity-20 rounded-lg transition-all"
+              className="p-2 hover:bg-white/10 disabled:opacity-20 rounded-lg transition-all"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -455,7 +455,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
 
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900/10 rounded-xl hover:bg-white dark:bg-zinc-900/20 transition-all text-sm font-bold"
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-bold"
           >
             <Menu className="w-4 h-4" />
             <span className="hidden md:inline">Contents</span>
