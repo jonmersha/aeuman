@@ -940,8 +940,49 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
                         <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight text-zinc-900 dark:text-white leading-tight">{selectedSection.name}</h2>
                       </div>
                       <div className="markdown-body">
-                        <Markdown>{selectedSection.overview || 'No overview provided for this section.'}</Markdown>
+                        <Markdown>{selectedSection.overview || 'No overview provided for this module.'}</Markdown>
                       </div>
+
+                      {/* Section Additional Videos */}
+                      {selectedSection.videoUrls && selectedSection.videoUrls.length > 0 && (
+                        <div className="space-y-6 mt-8">
+                          {selectedSection.videoUrls.map((vUrl: string, idx: number) => (
+                            <div key={idx} className="bg-black w-full aspect-video rounded-xl overflow-hidden shadow-lg relative">
+                              {getYouTubeId(vUrl) ? (
+                                <iframe
+                                  width="100%"
+                                  height="100%"
+                                  src={`https://www.youtube.com/embed/${getYouTubeId(vUrl)}?rel=0&modestbranding=1`}
+                                  title={`YouTube video player ${idx + 1}`}
+                                  frameBorder="0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="w-full h-full"
+                                ></iframe>
+                              ) : (
+                                <video 
+                                  src={vUrl} 
+                                  controls 
+                                  className="w-full h-full object-contain"
+                                >
+                                  Your browser does not support the video tag.
+                                </video>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Section Additional Text Blocks */}
+                      {selectedSection.additionalTexts && selectedSection.additionalTexts.length > 0 && (
+                        <div className="space-y-8 mt-8">
+                          {selectedSection.additionalTexts.map((text: string, idx: number) => (
+                            <div key={idx} className="markdown-body border-t border-zinc-100 dark:border-zinc-800 pt-8">
+                              <Markdown>{text}</Markdown>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       
                       <div className="pt-12 border-t border-zinc-100 dark:border-zinc-800">
                         <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">Lessons in this Section</h3>
@@ -1075,6 +1116,47 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
                           <div className="markdown-body">
                             <Markdown>{currentLesson.content || 'No detailed content provided for this lesson.'}</Markdown>
                           </div>
+
+                          {/* Lesson Additional Videos */}
+                          {currentLesson.videoUrls && currentLesson.videoUrls.length > 0 && (
+                            <div className="space-y-6 mt-8">
+                              {currentLesson.videoUrls.map((vUrl: string, idx: number) => (
+                                <div key={`lesson-video-${idx}`} className="bg-black w-full aspect-video rounded-xl overflow-hidden shadow-lg relative">
+                                  {getYouTubeId(vUrl) ? (
+                                    <iframe
+                                      width="100%"
+                                      height="100%"
+                                      src={`https://www.youtube.com/embed/${getYouTubeId(vUrl)}?rel=0&modestbranding=1`}
+                                      title={`YouTube video player ${idx + 1}`}
+                                      frameBorder="0"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                      className="w-full h-full"
+                                    ></iframe>
+                                  ) : (
+                                    <video 
+                                      src={vUrl} 
+                                      controls 
+                                      className="w-full h-full object-contain"
+                                    >
+                                      Your browser does not support the video tag.
+                                    </video>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Lesson Additional Text Blocks */}
+                          {currentLesson.additionalTexts && currentLesson.additionalTexts.length > 0 && (
+                            <div className="space-y-8 mt-8">
+                              {currentLesson.additionalTexts.map((text: string, idx: number) => (
+                                <div key={`lesson-text-${idx}`} className="markdown-body border-t border-zinc-100 dark:border-zinc-800 pt-8">
+                                  <Markdown>{text}</Markdown>
+                                </div>
+                              ))}
+                            </div>
+                          )}
 
                           <AISummary content={currentLesson.content || ''} title={currentLesson.title} />
                           <RelatedCourses courseId={courseId} category={course?.category || ''} />

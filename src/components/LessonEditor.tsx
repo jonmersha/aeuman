@@ -824,14 +824,55 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                     </button>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Section Overview (Markdown)</label>
-                    <textarea 
-                      value={editingSection.overview || ''}
-                      onChange={e => setEditingSection({...editingSection, overview: e.target.value})}
-                      className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[300px]"
-                      placeholder="Write an overview for this section..."
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Videos (One URL per line)</label>
+                      <textarea 
+                        value={(editingSection.videoUrls || []).join('\n')}
+                        onChange={e => setEditingSection({...editingSection, videoUrls: e.target.value.split('\n').filter(Boolean)})}
+                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[100px]"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Text Blocks (Markdown)</label>
+                        <button
+                          onClick={() => {
+                            const current = editingSection.additionalTexts || [];
+                            setEditingSection({...editingSection, additionalTexts: [...current, '']});
+                          }}
+                          className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                        >
+                          + Add Text Block
+                        </button>
+                      </div>
+                      {(editingSection.additionalTexts || []).map((text: string, idx: number) => (
+                        <div key={idx} className="relative mb-4">
+                          <textarea 
+                            value={text}
+                            onChange={e => {
+                              const newTexts = [...editingSection.additionalTexts];
+                              newTexts[idx] = e.target.value;
+                              setEditingSection({...editingSection, additionalTexts: newTexts});
+                            }}
+                            className="w-full px-4 py-3 pb-8 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[150px]"
+                            placeholder={`Text block ${idx + 1}...`}
+                          />
+                          <button
+                            onClick={() => {
+                              const newTexts = [...editingSection.additionalTexts];
+                              newTexts.splice(idx, 1);
+                              setEditingSection({...editingSection, additionalTexts: newTexts});
+                            }}
+                            className="absolute bottom-2 right-2 p-1.5 text-zinc-400 hover:text-red-500 transition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -943,15 +984,26 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                   </div>
 
                   {editingLesson.type === 'video' && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">YouTube Video URL</label>
-                      <input 
-                        type="url"
-                        value={editingLesson.videoUrl || ''}
-                        onChange={e => setEditingLesson({...editingLesson, videoUrl: e.target.value})}
-                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                      />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Main Video URL</label>
+                        <input 
+                          type="url"
+                          value={editingLesson.videoUrl || ''}
+                          onChange={e => setEditingLesson({...editingLesson, videoUrl: e.target.value})}
+                          className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Videos (One URL per line)</label>
+                        <textarea 
+                          value={(editingLesson.videoUrls || []).join('\n')}
+                          onChange={e => setEditingLesson({...editingLesson, videoUrls: e.target.value.split('\n').filter(Boolean)})}
+                          className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[100px]"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -968,14 +1020,55 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Lesson Content (Markdown)</label>
-                    <textarea 
-                      value={editingLesson.content || ''}
-                      onChange={e => setEditingLesson({...editingLesson, content: e.target.value})}
-                      className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[300px]"
-                      placeholder="Write your lesson content here using Markdown..."
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Lesson Content (Markdown)</label>
+                      <textarea 
+                        value={editingLesson.content || ''}
+                        onChange={e => setEditingLesson({...editingLesson, content: e.target.value})}
+                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[300px]"
+                        placeholder="Write your lesson content here using Markdown..."
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Text Blocks (Markdown)</label>
+                        <button
+                          onClick={() => {
+                            const current = editingLesson.additionalTexts || [];
+                            setEditingLesson({...editingLesson, additionalTexts: [...current, '']});
+                          }}
+                          className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                        >
+                          + Add Text Block
+                        </button>
+                      </div>
+                      {(editingLesson.additionalTexts || []).map((text: string, idx: number) => (
+                        <div key={`lesson-text-${idx}`} className="relative mb-4">
+                          <textarea 
+                            value={text}
+                            onChange={e => {
+                              const newTexts = [...editingLesson.additionalTexts];
+                              newTexts[idx] = e.target.value;
+                              setEditingLesson({...editingLesson, additionalTexts: newTexts});
+                            }}
+                            className="w-full px-4 py-3 pb-8 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[150px]"
+                            placeholder={`Text block ${idx + 1}...`}
+                          />
+                          <button
+                            onClick={() => {
+                              const newTexts = [...editingLesson.additionalTexts];
+                              newTexts.splice(idx, 1);
+                              setEditingLesson({...editingLesson, additionalTexts: newTexts});
+                            }}
+                            className="absolute bottom-2 right-2 p-1.5 text-zinc-400 hover:text-red-500 transition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </motion.div>
