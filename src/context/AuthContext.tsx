@@ -9,7 +9,7 @@ import {
 import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
-export type UserRole = 'super_admin' | 'school_manager' | 'teacher' | 'student' | 'parent' | 'provider' | 'admin' | 'pending';
+export type UserRole = 'super_admin' | 'teacher' | 'student' | 'parent' | 'admin' | 'pending';
 
 export interface UserProfile {
   uid: string;

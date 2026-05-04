@@ -28,7 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     { id: 'marketplace', label: 'Marketplace', icon: Search },
     ...(isSuperAdmin ? [{ id: 'super-admin', label: 'Super Admin Panel', icon: Settings }] : []),
     ...(profile?.role === 'admin' ? [{ id: 'school', label: 'School Manager Panel', icon: Settings }] : []),
-    ...(profile?.role === 'teacher' || profile?.role === 'provider' ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
+    ...(profile?.role === 'teacher' ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
     ...(profile?.role === 'parent' ? [{ id: 'parent', label: 'Parent Portal', icon: Users }] : []),
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings },

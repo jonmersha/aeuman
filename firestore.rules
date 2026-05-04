@@ -68,7 +68,7 @@ service cloud.firestore {
 
     function isTeacher() {
       let userData = getUserData();
-      return isAuthenticated() && (userData.get('role', '') == 'teacher' || userData.get('role', '') == 'provider' || isSuperAdmin());
+      return isAuthenticated() && (userData.get('role', '') == 'teacher' || isSuperAdmin());
     }
 
     function isCourseTeacher(courseId) {
@@ -115,7 +115,7 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.uid is string && 
              data.email is string && isValidEmail(data.email) &&
-             data.role in ['admin', 'teacher', 'student', 'parent', 'provider', 'super_admin', 'school_manager', 'pending'] &&
+             data.role in ['admin', 'teacher', 'student', 'parent', 'super_admin', 'pending'] &&
              data.displayName is string && data.displayName.size() < 100 &&
              (!('points' in data) || data.points is number) &&
              (!('badges' in data) || data.badges is list);
@@ -239,8 +239,11 @@ service cloud.firestore {
         (getUserData().get('role', '') == 'admin' && getUserData().get('schoolId', '') == request.resource.data.get('schoolId', '') && request.resource.data.role != 'super_admin' && request.resource.data.role != 'admin')
       ) && isValidUser(request.resource.data);
       allow update: if isAuthenticated() && (
-        isOwner(uid) || 
         isSuperAdmin() || 
+        (isOwner(uid) && (
+          request.resource.data.role == resource.data.role || 
+          request.resource.data.role in ['student', 'teacher', 'parent']
+        )) || 
         (getUserData().get('role', '') == 'admin' && getUserData().get('schoolId', '') == resource.data.get('schoolId', '') && request.resource.data.role != 'super_admin' && request.resource.data.role != 'admin')
       ) && isValidUser(request.resource.data);
       allow delete: if isSuperAdmin();

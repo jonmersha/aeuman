@@ -51,8 +51,8 @@ export const SettingsView: React.FC = () => {
           ) : (
             <>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Choose your role to access different features of the platform.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {(['student', 'teacher', 'admin', 'parent'] as UserRole[]).map((r) => (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(['student', 'teacher', 'parent'] as UserRole[]).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRole(r)}
@@ -63,7 +63,7 @@ export const SettingsView: React.FC = () => {
                         : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                     )}
                   >
-                    {r === 'admin' ? 'School Manager' : r}
+                    {r}
                   </button>
                 ))}
               </div>
