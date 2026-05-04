@@ -19,10 +19,6 @@ export const MainApp: React.FC = () => {
   const { profile } = useAuth();
   
   const getDefaultTab = (role?: string) => {
-    if (role === 'super_admin') return 'super-admin';
-    if (role === 'admin') return 'school';
-    if (role === 'teacher') return 'my-courses';
-    if (role === 'parent') return 'parent';
     return 'dashboard';
   };
 

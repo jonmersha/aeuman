@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   
   const menuItems = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'schools', label: 'Schools', icon: SchoolIcon },
+    ...(profile?.role !== 'student' ? [{ id: 'schools', label: 'Schools', icon: SchoolIcon }] : []),
     { id: 'courses', label: 'My Learning', icon: BookOpen },
     { id: 'marketplace', label: 'Discover', icon: Search },
     { id: 'messages', label: 'Messaging', icon: MessageSquare },

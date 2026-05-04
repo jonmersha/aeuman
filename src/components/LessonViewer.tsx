@@ -637,20 +637,53 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
                               </button>
                             </div>
                           ) : (
-                            <LessonContent 
-                              currentLesson={currentLesson}
-                              completedLessons={completedLessons}
-                              isSpeaking={isSpeaking}
-                              onTTS={handleTTS}
-                              onToggleComplete={toggleComplete}
-                              onSelectLesson={setCurrentLesson}
-                              onOpenExam={setSelectedExam}
-                              courseId={courseId}
-                              course={course}
-                              lessons={lessons}
-                              exams={exams}
-                              getYouTubeId={getYouTubeId}
-                            />
+                            <>
+                              <LessonContent 
+                                currentLesson={currentLesson}
+                                completedLessons={completedLessons}
+                                isSpeaking={isSpeaking}
+                                onTTS={handleTTS}
+                                onToggleComplete={toggleComplete}
+                                onSelectLesson={setCurrentLesson}
+                                onOpenExam={setSelectedExam}
+                                courseId={courseId}
+                                course={course}
+                                lessons={lessons}
+                                exams={exams}
+                                getYouTubeId={getYouTubeId}
+                              />
+                              
+                              <div className="px-6 md:px-12 py-8 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between mt-8">
+                                <button
+                                  onClick={() => {
+                                    if (prevLesson) {
+                                      setCurrentLesson(prevLesson);
+                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }
+                                  }}
+                                  disabled={!prevLesson}
+                                  className="flex items-center gap-2 px-4 md:px-6 py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-xl font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all disabled:opacity-30 disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-800"
+                                >
+                                  <ChevronLeft className="w-5 h-5" />
+                                  <span className="hidden sm:inline">Previous Lesson</span>
+                                  <span className="sm:hidden">Previous</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (nextLesson) {
+                                      setCurrentLesson(nextLesson);
+                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }
+                                  }}
+                                  disabled={!nextLesson}
+                                  className="flex items-center gap-2 px-4 md:px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all disabled:opacity-30 disabled:hover:bg-emerald-600 shadow-lg shadow-emerald-200 dark:shadow-none"
+                                >
+                                  <span className="hidden sm:inline">Next Lesson</span>
+                                  <span className="sm:hidden">Next</span>
+                                  <ChevronRight className="w-5 h-5" />
+                                </button>
+                              </div>
+                            </>
                           )}
                         </motion.div>
                       ) : (
