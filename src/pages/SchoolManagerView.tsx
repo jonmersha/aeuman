@@ -350,6 +350,24 @@ const SchoolManagerView: React.FC = () => {
     }
   };
 
+  const isSuperAdmin = profile?.role === 'super_admin';
+
+  if ((!profile?.schoolId && !isSuperAdmin) || (showCreateSchool && !isSuperAdmin)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+        <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center">
+          <SchoolIcon className="w-10 h-10 text-zinc-400" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold">No School Selected</h2>
+          <p className="text-zinc-500 mt-2 max-w-sm mx-auto">
+            You need to join a school first. Please go to the <strong>Schools</strong> tab to find and join an institution.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!profile?.schoolId || showCreateSchool) {
     return (
       <div className="max-w-2xl mx-auto space-y-8 py-12">
@@ -466,12 +484,14 @@ const SchoolManagerView: React.FC = () => {
       <div className="w-64 border-r border-black/5 pr-6 space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Your Schools</h2>
-          <button 
-            onClick={() => setShowCreateSchool(true)}
-            className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+          {isSuperAdmin && (
+            <button 
+              onClick={() => setShowCreateSchool(true)}
+              className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <div className="space-y-2">
           {managedSchools.map(s => (
