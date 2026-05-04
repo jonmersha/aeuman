@@ -19,6 +19,7 @@ const SuperAdminView: React.FC = () => {
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'verified' | 'pending'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'school' | 'user'>('school');
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -183,13 +184,20 @@ const SuperAdminView: React.FC = () => {
 
   const startEdit = (item: any) => {
     setEditingItem(item);
-    if (activeSubTab === 'schools') setNewSchool({ name: item.name, address: item.address, adminEmail: item.adminEmail, contactPhone: item.contactPhone || '', academicStructure: item.academicStructure || 'K-12' });
-    if (activeSubTab === 'users') setNewUser({ email: item.email, displayName: item.displayName, role: item.role, schoolId: item.schoolId || '', schoolIds: item.schoolIds || [], isIndependent: item.isIndependent || false });
+    if (activeSubTab === 'schools') {
+      setModalMode('school');
+      setNewSchool({ name: item.name, address: item.address, adminEmail: item.adminEmail, contactPhone: item.contactPhone || '', academicStructure: item.academicStructure || 'K-12' });
+    }
+    if (activeSubTab === 'users') {
+      setModalMode('user');
+      setNewUser({ email: item.email, displayName: item.displayName, role: item.role, schoolId: item.schoolId || '', schoolIds: item.schoolIds || [], isIndependent: item.isIndependent || false });
+    }
     setShowAddModal(true);
   };
 
   const openAddUserModal = (role: 'super_admin' | 'admin') => {
     setEditingItem(null);
+    setModalMode('user');
     setNewUser({ 
       email: '', 
       displayName: '', 
@@ -226,6 +234,7 @@ const SuperAdminView: React.FC = () => {
             <button 
               onClick={() => {
                 setEditingItem(null);
+                setModalMode('school');
                 setNewSchool({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12' });
                 setShowAddModal(true);
               }}
@@ -410,7 +419,7 @@ const SuperAdminView: React.FC = () => {
                         <button 
                           onClick={() => {
                             setNewUser({
-                              email: school.adminEmail || '',
+                              email: '',
                               displayName: '',
                               role: 'admin',
                               schoolId: school.id,
@@ -418,6 +427,7 @@ const SuperAdminView: React.FC = () => {
                               isIndependent: false
                             });
                             setEditingItem(null);
+                            setModalMode('user');
                             setShowAddModal(true);
                           }}
                           className="text-[10px] text-purple-600 font-bold hover:underline"
@@ -717,9 +727,9 @@ const SuperAdminView: React.FC = () => {
       <Modal 
         isOpen={showAddModal} 
         onClose={() => { setShowAddModal(false); setEditingItem(null); }}
-        title={editingItem ? `Edit ${activeSubTab === 'schools' ? 'School' : 'User'}` : `Add New ${activeSubTab === 'schools' ? 'School' : 'User'}`}
+        title={editingItem ? `Edit ${modalMode === 'school' ? 'School' : 'User'}` : `Add New ${modalMode === 'school' ? 'School' : 'User'}`}
       >
-        {activeSubTab === 'schools' ? (
+        {modalMode === 'school' ? (
           <form onSubmit={handleAddSchool} className="space-y-4">
             <div>
               <label className="block text-sm font-bold mb-1">School Name</label>
