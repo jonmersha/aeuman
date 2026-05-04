@@ -121,7 +121,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
     let unsubQuestions: any = null;
 
     if (profile) {
-      const enrollRef = doc(db, 'enrollments', `${profile.uid}_${courseId}`);
+      const enrollRef = doc(db, 'courses', courseId, 'enrollments', profile.uid);
       unsubEnroll = onSnapshot(enrollRef, (doc) => {
         if (doc.exists()) {
           setCompletedLessons(doc.data().completedLessons || []);
@@ -351,7 +351,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
     
     const progress = lessons.length > 0 ? Math.round((newCompleted.length / lessons.length) * 100) : 0;
     
-    const enrollRef = doc(db, 'enrollments', `${profile.uid}_${courseId}`);
+    const enrollRef = doc(db, 'courses', courseId, 'enrollments', profile.uid);
     await updateDoc(enrollRef, {
       completedLessons: newCompleted,
       progress: progress,
@@ -382,8 +382,10 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
       const enrollRef = doc(db, 'courses', courseId, 'enrollments', profile.uid);
       await setDoc(enrollRef, {
         studentId: profile.uid,
+        studentName: profile.displayName || 'Anonymous',
         courseId: courseId,
-        status: 'pending',
+        courseTitle: course?.title || 'Unknown Course',
+        status: 'approved',
         enrolledAt: Timestamp.now(),
         progress: 0,
         completedLessons: []

@@ -90,7 +90,7 @@ service cloud.firestore {
     }
 
     function isEnrolledInCourse(courseId) {
-      return isAuthenticated() && exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + courseId)) && get(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + courseId)).data.status == 'approved';
+      return isAuthenticated() && exists(/databases/$(database)/documents/courses/$(courseId)/enrollments/$(request.auth.uid)) && get(/databases/$(database)/documents/courses/$(courseId)/enrollments/$(request.auth.uid)).data.status == 'approved';
     }
 
     function isParticipant(conversationId) {

@@ -59,7 +59,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ onSelectCourse, onSele
     setIsEnrolling(true);
     try {
       const parentCollection = type === 'course' ? 'courses' : 'exams';
-      const enrollmentId = profile.uid; // Standardized to profile.uid
+      const enrollmentId = profile.uid;
       await setDoc(doc(db, parentCollection, item.id, 'enrollments', enrollmentId), {
         studentId: profile.uid,
         studentName: profile.displayName || 'Anonymous',
@@ -68,7 +68,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ onSelectCourse, onSele
         title: item.title,
         enrolledAt: Timestamp.now(),
         progress: 0,
-        status: 'pending',
+        status: 'approved',
         paymentVerified: item.price === 0,
         type: type
       });
@@ -176,6 +176,27 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ onSelectCourse, onSele
                 <CourseCard 
                   course={item} 
                   onClick={() => onSelectCourse(item.id)}
+                  action={
+                    isEnrolled ? (
+                      <button 
+                        onClick={() => onSelectCourse(item.id)}
+                        className="w-full py-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 dark:border-emerald-500/20"
+                      >
+                        Enrolled • Access
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEnroll(item, 'course');
+                        }}
+                        disabled={isEnrolling}
+                        className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-purple-700 hover:shadow-xl hover:shadow-purple-200 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
+                      </button>
+                    )
+                  }
                 />
               </div>
             ) : (
@@ -200,6 +221,31 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ onSelectCourse, onSele
                   </div>
                   <h3 className="font-black text-2xl leading-tight mb-4 group-hover:text-purple-600 transition-colors line-clamp-2 dark:text-white">{item.title}</h3>
                   <p className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 font-medium line-clamp-2 mb-8 flex-1">{item.description}</p>
+                  
+                  <div className="mt-auto pt-6 border-t border-black/5">
+                    {isEnrolled ? (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectExam(item.id);
+                        }}
+                        className="w-full py-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 dark:border-emerald-500/20"
+                      >
+                        Enrolled • Start
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEnroll(item, 'exam');
+                        }}
+                        disabled={isEnrolling}
+                        className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-purple-700 hover:shadow-xl hover:shadow-purple-200 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {isEnrolling ? 'Enrolling...' : 'Subscribe Now'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );
