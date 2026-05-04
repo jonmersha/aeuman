@@ -1,5 +1,4 @@
 import React from 'react';
-import Markdown from 'react-markdown';
 import { BookOpen, ExternalLink, FileText } from 'lucide-react';
 
 interface SectionOverviewProps {
@@ -23,57 +22,7 @@ export const SectionOverview: React.FC<SectionOverviewProps> = ({
         </div>
         <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight text-zinc-900 dark:text-white leading-tight">{selectedSection.name}</h2>
       </div>
-      <div className="markdown-body">
-        <Markdown>{selectedSection.overview || 'No overview provided for this module.'}</Markdown>
-      </div>
-
-      {selectedSection.additionalBlocks && selectedSection.additionalBlocks.length > 0 && (
-        <div className="space-y-8 mt-8">
-          {selectedSection.additionalBlocks.map((block: any, idx: number) => {
-            if (block.type === 'text') {
-              return (
-                <div key={idx} className="markdown-body border-t border-zinc-100 dark:border-zinc-800 pt-8">
-                  <Markdown>{block.content}</Markdown>
-                </div>
-              );
-            }
-            if (block.type === 'video') {
-              return (
-                <div key={idx} className="bg-black w-full aspect-video rounded-xl overflow-hidden shadow-lg relative border-t border-zinc-100 dark:border-zinc-800 pt-4 mt-4">
-                  {getYouTubeId(block.content) ? (
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={`https://www.youtube.com/embed/${getYouTubeId(block.content)}?rel=0&modestbranding=1`}
-                      title={`YouTube video player ${idx + 1}`}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full"
-                    ></iframe>
-                  ) : (
-                    <video 
-                      src={block.content} 
-                      controls 
-                      className="w-full h-full object-contain"
-                    >
-                      Your browser does not support the video tag.
-                    </video>
-                  )}
-                </div>
-              );
-            }
-            if (block.type === 'pdf') {
-              return (
-                <div key={idx} className="w-full h-[600px] border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden mt-8 border-t pt-4">
-                  <iframe src={block.content} className="w-full h-full" title={`PDF Viewer ${idx}`} />
-                </div>
-              );
-            }
-            return null;
-          })}
-        </div>
-      )}
+      <div className="prose prose-zinc dark:prose-invert max-w-none shadow-sm p-4 rounded-xl border border-zinc-100 dark:border-zinc-800" dangerouslySetInnerHTML={{ __html: selectedSection.overview || '<p>No overview provided for this module.</p>' }} />
 
       {/* Section Additional Resources */}
       {selectedSection.resources && selectedSection.resources.length > 0 && (
@@ -117,7 +66,6 @@ export const SectionOverview: React.FC<SectionOverviewProps> = ({
               </div>
               <div>
                 <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">{lesson.title}</h4>
-                <p className="text-xs text-zinc-500 capitalize mt-0.5">{lesson.type}</p>
               </div>
             </button>
           ))}

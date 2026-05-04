@@ -10,9 +10,10 @@ import { Leaderboard } from '../components/Leaderboard';
 interface DashboardProps {
   onSelectCourse: (id: string) => void;
   onSelectExam: (id: string) => void;
+  onBrowseSchools: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectExam }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectExam, onBrowseSchools }) => {
   const { profile, joinSchool } = useAuth();
   const [recentResults, setRecentResults] = useState<any[]>([]);
   const [stats, setStats] = useState({ enrolled: 0, completed: 0, avgProgress: 0, points: 0 });
@@ -317,7 +318,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
           />
 
           <section className="space-y-4">
-            <h2 className="text-xl font-bold dark:text-white">Join a School</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold dark:text-white">Join a School</h2>
+              <button 
+                onClick={onBrowseSchools}
+                className="text-xs font-bold text-purple-600 hover:underline flex items-center gap-1"
+              >
+                Browse Schools directory &rarr;
+              </button>
+            </div>
           <div className="p-6 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-2xl shadow-sm">
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">Enter your school's unique code to join and access your classes.</p>
             <div className="flex gap-2">

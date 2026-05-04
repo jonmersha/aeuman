@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import Markdown from 'react-markdown';
 import { Volume2, CheckCircle2, BookOpen } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AISummary } from '../AISummary';
@@ -45,10 +44,6 @@ export const LessonContent: React.FC<LessonContentProps> = ({
             <span className="text-zinc-500 dark:text-zinc-400 text-xs font-semibold uppercase tracking-wider">
               {currentLesson.section || 'General'}
             </span>
-            <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-            <span className="text-zinc-500 dark:text-zinc-400 text-xs font-semibold uppercase tracking-wider">
-              {currentLesson.type}
-            </span>
           </div>
           <h2 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-zinc-900 dark:text-white">{currentLesson.title}</h2>
         </div>
@@ -85,63 +80,7 @@ export const LessonContent: React.FC<LessonContentProps> = ({
             </p>
           )}
           
-          {currentLesson.type === 'pdf' && currentLesson.pdfUrl && (
-            <div className="w-full h-[600px] md:h-[800px] rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm bg-zinc-50 dark:bg-zinc-800">
-              <iframe src={currentLesson.pdfUrl} className="w-full h-full" title="PDF Viewer" />
-            </div>
-          )}
-
-          <div className="markdown-body">
-            <Markdown>{currentLesson.content || 'No detailed content provided for this lesson.'}</Markdown>
-          </div>
-
-          {currentLesson.additionalBlocks && currentLesson.additionalBlocks.length > 0 && (
-            <div className="space-y-8 mt-8">
-              {currentLesson.additionalBlocks.map((block: any, idx: number) => {
-                if (block.type === 'text') {
-                  return (
-                    <div key={`lesson-block-${idx}`} className="markdown-body border-t border-zinc-100 dark:border-zinc-800 pt-8">
-                      <Markdown>{block.content}</Markdown>
-                    </div>
-                  );
-                }
-                if (block.type === 'video') {
-                  return (
-                    <div key={`lesson-block-${idx}`} className="bg-black w-full aspect-video rounded-xl overflow-hidden shadow-lg relative border-t border-zinc-100 dark:border-zinc-800 pt-4 mt-4">
-                      {getYouTubeId(block.content) ? (
-                        <iframe
-                          width="100%"
-                          height="100%"
-                          src={`https://www.youtube.com/embed/${getYouTubeId(block.content)}?rel=0&modestbranding=1`}
-                          title={`YouTube video player ${idx + 1}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        ></iframe>
-                      ) : (
-                        <video 
-                          src={block.content} 
-                          controls 
-                          className="w-full h-full object-contain"
-                        >
-                          Your browser does not support the video tag.
-                        </video>
-                      )}
-                    </div>
-                  );
-                }
-                if (block.type === 'pdf') {
-                  return (
-                    <div key={`lesson-block-${idx}`} className="w-full h-[600px] border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden mt-8 border-t pt-4">
-                      <iframe src={block.content} className="w-full h-full" title={`PDF Viewer ${idx}`} />
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          )}
+          <div className="prose prose-zinc dark:prose-invert max-w-none shadow-sm p-4 rounded-xl border border-zinc-100 dark:border-zinc-800" dangerouslySetInnerHTML={{ __html: currentLesson.content || '<p>No detailed content provided for this lesson.</p>' }} />
 
           {/* Sub-lessons Grid */}
           {lessons.some(l => l.parentId === currentLesson.id) && (

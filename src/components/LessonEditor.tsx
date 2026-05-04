@@ -2,15 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, orderBy, onSnapshot, doc, setDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ChevronRight, Plus, Settings, Trash2, GripVertical, Video, FileText, Type, Layers, Save, ArrowLeft, ExternalLink, Download, X, Link as LinkIcon, BookOpen, Pencil, Play, Code } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import Markdown from 'react-markdown';
 import { db } from '../firebase';
 import { cn } from '../lib/utils';
 import { QuizEditor } from './QuizEditor';
 
-export interface AdditionalBlock {
-  type: 'text' | 'video' | 'pdf';
-  content: string;
-}
+import { RichTextEditor } from './RichTextEditor';
 
 export interface ResourceBlock {
   title: string;
@@ -73,110 +69,6 @@ const ResourcesEditor = ({ resources, onChange }: { resources: ResourceBlock[], 
   );
 };
 
-const AdditionalBlocksEditor = ({ blocks, onChange }: { blocks: AdditionalBlock[], onChange: (blocks: AdditionalBlock[]) => void }) => {
-  const [previewModes, setPreviewModes] = useState<Record<number, boolean>>({});
-
-  const addBlock = (type: 'text' | 'video' | 'pdf') => {
-    onChange([...(blocks || []), { type, content: '' }]);
-  };
-
-  const updateBlock = (idx: number, content: string) => {
-    const newBlocks = [...(blocks || [])];
-    newBlocks[idx].content = content;
-    onChange(newBlocks);
-  };
-
-  const removeBlock = (idx: number) => {
-    const newBlocks = [...(blocks || [])];
-    newBlocks.splice(idx, 1);
-    onChange(newBlocks);
-    const newPreviews = { ...previewModes };
-    delete newPreviews[idx];
-    setPreviewModes(newPreviews);
-  };
-
-  const togglePreview = (idx: number) => {
-    setPreviewModes(prev => ({ ...prev, [idx]: !prev[idx] }));
-  };
-
-  return (
-    <div className="space-y-4 border-t border-black/5 pt-6 mt-6">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Content Blocks</label>
-        <div className="flex gap-2">
-          <button onClick={() => addBlock('text')} className="flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
-            <Type size={12} /> Text
-          </button>
-          <button onClick={() => addBlock('video')} className="flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
-            <Video size={12} /> Video
-          </button>
-          <button onClick={() => addBlock('pdf')} className="flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
-            <FileText size={12} /> PDF
-          </button>
-        </div>
-      </div>
-      {(blocks || []).map((block, idx) => (
-        <div key={idx} className="relative mb-4 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl overflow-hidden p-4">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-              {block.type === 'text' && <Type size={14} />}
-              {block.type === 'video' && <Video size={14} />}
-              {block.type === 'pdf' && <FileText size={14} />}
-              {block.type} Block
-            </span>
-            <div className="flex items-center gap-2">
-              {block.type === 'text' && (
-                <button
-                  onClick={() => togglePreview(idx)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-white dark:bg-zinc-900 border border-black/10 rounded-md hover:bg-zinc-100 transition"
-                >
-                  {previewModes[idx] ? <><Code size={12} /> Edit</> : <><Play size={12} /> Preview</>}
-                </button>
-              )}
-              <button
-                onClick={() => removeBlock(idx)}
-                className="p-1.5 text-zinc-400 hover:text-red-500 transition"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          
-          {block.type === 'text' ? (
-            previewModes[idx] ? (
-              <div className="markdown-body p-4 bg-white dark:bg-zinc-900 rounded-xl min-h-[150px] border border-black/5">
-                <Markdown>{block.content || '*Empty text block*'}</Markdown>
-              </div>
-            ) : (
-              <textarea 
-                value={block.content}
-                onChange={e => updateBlock(idx, e.target.value)}
-                className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[150px]"
-                placeholder="Write markdown here..."
-              />
-            )
-          ) : block.type === 'video' ? (
-            <input 
-              type="url"
-              value={block.content}
-              onChange={e => updateBlock(idx, e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
-              placeholder="https://www.youtube.com/watch?v=... or .mp4 URL"
-            />
-          ) : (
-            <input 
-              type="url"
-              value={block.content}
-              onChange={e => updateBlock(idx, e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
-              placeholder="https://example.com/document.pdf"
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-};
 
 interface LessonEditorProps {
   courseId: string;
@@ -659,7 +551,7 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <GripVertical className="w-3 h-3 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {main.type === 'video' ? <Video className="w-3.5 h-3.5" /> : main.type === 'pdf' ? <FileText className="w-3.5 h-3.5" /> : main.type === 'container' ? <Layers className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
+                        <BookOpen className="w-3.5 h-3.5" />
                         <span className="text-sm font-bold truncate">{main.title}</span>
                         {resources.some(r => r.lessonId === main.id) && (
                           <FileText className="w-2.5 h-2.5 text-purple-500 shrink-0" />
@@ -939,12 +831,10 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Course Overview (Markdown)</label>
-                    <textarea 
-                      value={editingCourseData.description || ''}
-                      onChange={e => setEditingCourseData({...editingCourseData, description: e.target.value})}
-                      className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[400px]"
-                      placeholder="Write a comprehensive overview of your course..."
+                    <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Course Overview</label>
+                    <RichTextEditor 
+                      content={editingCourseData.description || ''}
+                      onChange={(description) => setEditingCourseData({...editingCourseData, description})}
                     />
                   </div>
                 </div>
@@ -996,10 +886,13 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                     </button>
                   </div>
 
-                  <AdditionalBlocksEditor 
-                    blocks={editingSection.additionalBlocks || []}
-                    onChange={(blocks) => setEditingSection({...editingSection, additionalBlocks: blocks})}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Section Overview</label>
+                    <RichTextEditor 
+                      content={editingSection.overview || ''}
+                      onChange={(content) => setEditingSection({...editingSection, overview: content})}
+                    />
+                  </div>
                   
                   <ResourcesEditor 
                     resources={editingSection.resources || []}
@@ -1066,103 +959,20 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                       <div className={cn("w-4 h-4 rounded-full border-2", editingLesson.isPublic ? "bg-emerald-500 border-emerald-500" : "border-zinc-300")} />
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Content Type</label>
-                      <div className="flex gap-2">
-                        {[
-                          { id: 'text', icon: Type, label: 'Text' },
-                          { id: 'video', icon: Video, label: 'Video' },
-                          { id: 'pdf', icon: FileText, label: 'PDF' },
-                          { id: 'container', icon: Layers, label: 'Container' }
-                        ].map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => setEditingLesson({...editingLesson, type: t.id})}
-                            className={cn(
-                              "flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all",
-                              editingLesson.type === t.id ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-zinc-50 dark:bg-zinc-800 border-black/5 text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:bg-zinc-800"
-                            )}
-                          >
-                            <t.icon className="w-5 h-5" />
-                            <span className="text-[10px] font-bold uppercase">{t.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Section</label>
-                      <select 
-                        value={editingLesson.section}
-                        onChange={e => setEditingLesson({...editingLesson, section: e.target.value})}
-                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-medium"
-                      >
-                        {sections.map((s, index) => (
-                          <option key={s.id} value={s.name}>{s.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Lesson Content</label>
+          <RichTextEditor 
+            content={editingLesson.content || ''}
+            onChange={(content) => setEditingLesson({...editingLesson, content})}
+          />
+        </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Short Description</label>
-                    <textarea 
-                      value={editingLesson.shortDescription || ''}
-                      onChange={e => setEditingLesson({...editingLesson, shortDescription: e.target.value})}
-                      className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm min-h-[80px]"
-                      placeholder="Brief summary for the sidebar or overview..."
-                    />
-                  </div>
-
-                  {editingLesson.type === 'video' && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Main Video URL</label>
-                        <input 
-                          type="url"
-                          value={editingLesson.videoUrl || ''}
-                          onChange={e => setEditingLesson({...editingLesson, videoUrl: e.target.value})}
-                          className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
-                          placeholder="https://www.youtube.com/watch?v=..."
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {editingLesson.type === 'pdf' && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">PDF URL</label>
-                      <input 
-                        type="url"
-                        value={editingLesson.pdfUrl || ''}
-                        onChange={e => setEditingLesson({...editingLesson, pdfUrl: e.target.value})}
-                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
-                        placeholder="https://example.com/document.pdf"
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Lesson Content (Markdown)</label>
-                      <textarea 
-                        value={editingLesson.content || ''}
-                        onChange={e => setEditingLesson({...editingLesson, content: e.target.value})}
-                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[300px]"
-                        placeholder="Write your lesson content here using Markdown..."
-                      />
-                    </div>
-
-                    <AdditionalBlocksEditor 
-                      blocks={editingLesson.additionalBlocks || []}
-                      onChange={(blocks) => setEditingLesson({...editingLesson, additionalBlocks: blocks})}
-                    />
-                    
-                    <ResourcesEditor 
-                      resources={editingLesson.resources || []}
-                      onChange={(resources) => setEditingLesson({...editingLesson, resources})}
-                    />
-                  </div>
+        <ResourcesEditor 
+          resources={editingLesson.resources || []}
+          onChange={(resources) => setEditingLesson({...editingLesson, resources})}
+        />
+      </div>
                 </div>
               </motion.div>
             ) : (

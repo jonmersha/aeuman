@@ -42,7 +42,6 @@ import {
   User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import Markdown from 'react-markdown';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';

@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import Markdown from 'react-markdown';
 import { FileText, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { RelatedCourses } from '../RelatedCourses';
@@ -36,9 +35,7 @@ export const CourseOverview: React.FC<CourseOverviewProps> = ({
         <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight text-zinc-900 dark:text-white leading-tight">Course Overview</h2>
         <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">{course?.title}</p>
       </div>
-      <div className="markdown-body">
-        <Markdown>{course?.description || 'No course overview provided.'}</Markdown>
-      </div>
+      <div className="prose prose-zinc dark:prose-invert max-w-none shadow-sm p-4 rounded-xl border border-zinc-100 dark:border-zinc-800" dangerouslySetInnerHTML={{ __html: course?.description || '<p>No course overview provided.</p>' }} />
 
       {!enrollment && (
         <div className="mt-8 p-6 bg-indigo-50 dark:bg-zinc-800 rounded-2xl border border-indigo-100 dark:border-zinc-700">

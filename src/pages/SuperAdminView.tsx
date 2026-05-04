@@ -59,6 +59,8 @@ const SuperAdminView: React.FC = () => {
   const [newSchool, setNewSchool] = useState({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12' });
   const [newUser, setNewUser] = useState({ email: '', displayName: '', role: 'super_admin' as any, schoolId: '', schoolIds: [] as string[], isIndependent: false });
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [foundUser, setFoundUser] = useState<any>(null);
   const [courseComment, setCourseComment] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
 
@@ -129,6 +131,8 @@ const SuperAdminView: React.FC = () => {
       }, { merge: true });
       setShowAddModal(false);
       setEditingItem(null);
+      setFoundUser(null);
+      setUserSearchQuery('');
       setNewUser({ email: '', displayName: '', role: 'super_admin', schoolId: '', schoolIds: [], isIndependent: false });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `users/${editingItem?.id || 'new'}`);
@@ -197,6 +201,8 @@ const SuperAdminView: React.FC = () => {
 
   const openAddUserModal = (role: 'super_admin' | 'admin') => {
     setEditingItem(null);
+    setFoundUser(null);
+    setUserSearchQuery('');
     setModalMode('user');
     setNewUser({ 
       email: '', 
@@ -726,7 +732,7 @@ const SuperAdminView: React.FC = () => {
       {/* Modals */}
       <Modal 
         isOpen={showAddModal} 
-        onClose={() => { setShowAddModal(false); setEditingItem(null); }}
+        onClose={() => { setShowAddModal(false); setEditingItem(null); setFoundUser(null); setUserSearchQuery(''); }}
         title={editingItem ? `Edit ${modalMode === 'school' ? 'School' : 'User'}` : `Add New ${modalMode === 'school' ? 'School' : 'User'}`}
       >
         {modalMode === 'school' ? (
@@ -794,7 +800,63 @@ const SuperAdminView: React.FC = () => {
             </div>
           </form>
         ) : (
-          <form onSubmit={handleAddUser} className="space-y-4">
+          <div className="space-y-6">
+            {!editingItem && (
+              <div className="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                <label className="block text-xs font-bold text-zinc-500 uppercase">Search Existing User</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <input 
+                      type="email" 
+                      placeholder="Enter user email..."
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
+                    />
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const user = users.find(u => u.email?.toLowerCase() === userSearchQuery.toLowerCase());
+                      if (user) {
+                        setFoundUser(user);
+                        setEditingItem(user);
+                        setNewUser({
+                          email: user.email || '',
+                          displayName: user.displayName || '',
+                          role: newUser.role, // Keep the role we intended (likely admin)
+                          schoolId: newUser.schoolId, // Keep the school we intended
+                          schoolIds: user.schoolIds || [],
+                          isIndependent: user.isIndependent || false
+                        });
+                      } else {
+                        alert("User not found as an existing account.");
+                      }
+                    }}
+                    className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold shadow-sm"
+                  >
+                    Search
+                  </button>
+                </div>
+                {foundUser && (
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-xs uppercase">
+                        {foundUser.displayName?.[0] || 'U'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{foundUser.displayName}</p>
+                        <p className="text-[10px] text-zinc-500 tracking-tight">{foundUser.email}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-100 px-2 py-0.5 rounded">Selected</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleAddUser} className="space-y-4">
             <div>
               <label className="block text-sm font-bold mb-1">Display Name</label>
               <input 
@@ -877,6 +939,7 @@ const SuperAdminView: React.FC = () => {
               </button>
             </div>
           </form>
+          </div>
         )}
       </Modal>
 

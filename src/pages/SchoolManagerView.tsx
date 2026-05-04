@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Users, Settings, Plus, BookOpen, UserPlus, Trash2, Upload, CheckCircle2, AlertCircle, DollarSign, Search, School as SchoolIcon, ChevronRight, ArrowLeft } from 'lucide-react';
-import { collection, query, onSnapshot, doc, setDoc, Timestamp, where, collectionGroup, addDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, setDoc, Timestamp, where, collectionGroup, addDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
@@ -17,7 +17,8 @@ const SchoolManagerView: React.FC = () => {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [exams, setExams] = useState<any[]>([]);
-  const [activeSubTab, setActiveSubTab] = useState<'classes' | 'users' | 'courses' | 'exams' | 'payments' | 'profile'>('classes');
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState<'classes' | 'users' | 'courses' | 'exams' | 'payments' | 'join-requests' | 'profile'>('classes');
   const [view, setView] = useState<'main' | 'edit-course' | 'edit-exam'>('main');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
@@ -108,6 +109,11 @@ const SchoolManagerView: React.FC = () => {
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `schools/${currentSchoolId}`));
 
+    const joinRequestsQuery = query(collection(db, 'joinRequests'), where('schoolId', '==', currentSchoolId));
+    const unsubJoinRequests = onSnapshot(joinRequestsQuery, (snap) => {
+      setJoinRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'joinRequests'));
+
     return () => {
       unsubClasses();
       unsubUsers();
@@ -116,6 +122,7 @@ const SchoolManagerView: React.FC = () => {
       unsubEnrollments();
       unsubSchool();
       unsubManaged();
+      unsubJoinRequests();
     };
   }, [profile, courses.length]);
 
@@ -347,6 +354,49 @@ const SchoolManagerView: React.FC = () => {
       // The AuthContext will pick up the change and reload the profile
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `users/${profile.uid}`);
+    }
+  };
+
+  const handleApproveJoinRequest = async (request: any) => {
+    try {
+      // 1. Update the request status
+      await setDoc(doc(db, 'joinRequests', request.id), {
+        status: 'approved',
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+
+      // 2. Fetch the user's current data to get existing schoolIds
+      const userRef = doc(db, 'users', request.userId);
+      const userSnap = await getDoc(userRef);
+      
+      let schoolIds = [request.schoolId];
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        schoolIds = Array.from(new Set([...(userData.schoolIds || []), request.schoolId]));
+      }
+
+      // 3. Update the user's profile
+      await setDoc(userRef, {
+        schoolId: request.schoolId, // Set as their active school
+        schoolIds: schoolIds,
+        role: request.role, // Update to the requested role (student/teacher/parent)
+        status: 'active',
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `joinRequests/${request.id}`);
+    }
+  };
+
+  const handleDenyJoinRequest = async (requestId: string) => {
+    try {
+      await setDoc(doc(db, 'joinRequests', requestId), {
+        status: 'denied',
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `joinRequests/${requestId}`);
     }
   };
 
@@ -625,6 +675,17 @@ const SchoolManagerView: React.FC = () => {
           className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap", activeSubTab === 'exams' ? "bg-zinc-900 text-white" : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800")}
         >
           Exams
+        </button>
+        <button 
+          onClick={() => setActiveSubTab('join-requests')}
+          className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap relative", activeSubTab === 'join-requests' ? "bg-zinc-900 text-white" : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800")}
+        >
+          Join Requests
+          {joinRequests.filter(r => r.status === 'pending').length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-zinc-950">
+              {joinRequests.filter(r => r.status === 'pending').length}
+            </span>
+          )}
         </button>
         <button 
           onClick={() => setActiveSubTab('payments')}
@@ -953,6 +1014,79 @@ const SchoolManagerView: React.FC = () => {
                     })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeSubTab === 'join-requests' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Pending Join Requests</h2>
+              <div className="text-sm text-zinc-500">
+                {joinRequests.filter(r => r.status === 'pending').length} requests awaiting your review
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-black/5 rounded-3xl overflow-hidden shadow-sm">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-black/5">
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500">User</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500">Requested Role</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500">Applied Date</th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {joinRequests
+                    .filter(r => r.status === 'pending')
+                    .sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0))
+                    .map(request => (
+                      <tr key={request.id} className="border-b border-black/5 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="font-bold">{request.userName || 'Unknown User'}</span>
+                            <span className="text-[10px] text-zinc-500">{request.userEmail}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={cn(
+                            "px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider",
+                            request.role === 'teacher' ? "bg-blue-100 text-blue-700" : 
+                            request.role === 'parent' ? "bg-purple-100 text-purple-700" : 
+                            "bg-emerald-100 text-emerald-700"
+                          )}>
+                            {request.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-zinc-500 text-sm">
+                          {request.createdAt?.toDate().toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => handleDenyJoinRequest(request.id)}
+                              className="px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl text-xs font-bold transition-all"
+                            >
+                              Deny
+                            </button>
+                            <button 
+                              onClick={() => handleApproveJoinRequest(request)}
+                              className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 shadow-md transition-all active:scale-95"
+                            >
+                              Approve
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              {joinRequests.filter(r => r.status === 'pending').length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-zinc-500 italic">No pending requests at this time.</p>
+                </div>
+              )}
             </div>
           </div>
         )}

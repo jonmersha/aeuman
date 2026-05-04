@@ -10,6 +10,8 @@ import SchoolManagerView from '../pages/SchoolManagerView';
 import ManagerDashboard from '../pages/ManagerDashboard';
 import TeacherView from '../pages/TeacherView';
 import { ParentView } from '../pages/ParentView';
+import { SchoolDirectoryView } from '../pages/SchoolDirectoryView';
+import { SchoolProfileView } from '../pages/SchoolProfileView';
 import { LessonViewer } from './LessonViewer';
 import { ExamViewer } from './ExamViewer';
 
@@ -27,6 +29,7 @@ export const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState(getDefaultTab(profile?.role));
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const [viewingSchoolId, setViewingSchoolId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -56,10 +59,13 @@ export const MainApp: React.FC = () => {
     if (selectedExamId) {
       return <ExamViewer examId={selectedExamId} onBack={() => setSelectedExamId(null)} />;
     }
+    if (viewingSchoolId) {
+      return <SchoolProfileView schoolId={viewingSchoolId} onBack={() => setViewingSchoolId(null)} onSelectCourse={handleSelectCourse} />;
+    }
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onSelectCourse={handleSelectCourse} onSelectExam={handleSelectExam} />;
+        return <Dashboard onSelectCourse={handleSelectCourse} onSelectExam={handleSelectExam} onBrowseSchools={() => setActiveTab('schools')} />;
       case 'courses':
         return <MyCourses onSelectCourse={handleSelectCourse} onSelectExam={handleSelectExam} />;
       case 'marketplace':
@@ -69,7 +75,10 @@ export const MainApp: React.FC = () => {
       case 'super-admin':
         return <SuperAdminView />;
       case 'schools':
-        return <ManagerDashboard onSelectSchool={() => setActiveTab('school')} />;
+        if (profile?.role === 'super_admin' || profile?.role === 'admin') {
+          return <ManagerDashboard onSelectSchool={() => setActiveTab('school')} />;
+        }
+        return <SchoolDirectoryView onSelectSchool={setViewingSchoolId} />;
       case 'school':
         return <SchoolManagerView />;
       case 'my-courses':
@@ -77,7 +86,7 @@ export const MainApp: React.FC = () => {
       case 'parent':
         return <ParentView />;
       default:
-        return <Dashboard onSelectCourse={handleSelectCourse} onSelectExam={handleSelectExam} />;
+        return <Dashboard onSelectCourse={handleSelectCourse} onSelectExam={handleSelectExam} onBrowseSchools={() => setActiveTab('schools')} />;
     }
   };
 
@@ -87,6 +96,7 @@ export const MainApp: React.FC = () => {
         setActiveTab(tab);
         setSelectedCourseId(null);
         setSelectedExamId(null);
+        setViewingSchoolId(null);
       }} />
       <main className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-8">
         {renderContent()}

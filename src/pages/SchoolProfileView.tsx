@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, collection, addDoc, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, Timestamp, setDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { School as SchoolIcon, MapPin, Globe, Mail, Phone, User, ArrowLeft, CheckCircle2, BookOpen } from 'lucide-react';
+import { School as SchoolIcon, MapPin, Globe, Mail, Phone, User, ArrowLeft, CheckCircle2, BookOpen, Search } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { cn } from '../lib/utils';
 
 interface SchoolProfileViewProps {
   schoolId: string;
   onBack: () => void;
+  onSelectCourse: (id: string) => void;
 }
 
-export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, onBack }) => {
+export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, onBack, onSelectCourse }) => {
   const { profile } = useAuth();
   const [school, setSchool] = useState<any>(null);
   const [courses, setCourses] = useState<any[]>([]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinStatus, setJoinStatus] = useState<'none' | 'pending' | 'member'>('none');
   const [requestingRole, setRequestingRole] = useState<string | null>(null);
+  const [courseSearch, setCourseSearch] = useState('');
+  const [isEnrolling, setIsEnrolling] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSchoolAndStatus = async () => {
@@ -34,6 +39,11 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
         setCourses(coursesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
         if (profile && profile.uid) {
+          // Fetch existing enrollments
+          const enrollmentsQ = query(collectionGroup(db, 'enrollments'), where('studentId', '==', profile.uid));
+          const enrollSnapshot = await getDocs(enrollmentsQ);
+          setEnrolledCourseIds(enrollSnapshot.docs.map(d => d.data().courseId).filter(Boolean));
+
           if (profile.schoolId === schoolId || (profile.schoolIds && profile.schoolIds.includes(schoolId))) {
             setJoinStatus('member');
           } else {
@@ -83,6 +93,34 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
       setRequestingRole(null);
     }
   };
+
+  const handleEnrollCourse = async (course: any) => {
+    if (!profile) return;
+    setIsEnrolling(course.id);
+    try {
+      await setDoc(doc(db, 'courses', course.id, 'enrollments', profile.uid), {
+        studentId: profile.uid,
+        studentName: profile.displayName || 'Anonymous',
+        teacherId: course.teacherId || 'unknown',
+        courseId: course.id,
+        title: course.title,
+        enrolledAt: Timestamp.now(),
+        progress: 0,
+        status: 'approved',
+        paymentVerified: true,
+        type: 'course'
+      });
+      setEnrolledCourseIds(prev => [...prev, course.id]);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `courses/${course.id}/enrollments/${profile.uid}`);
+    } finally {
+      setIsEnrolling(null);
+    }
+  };
+
+  const filteredCourses = courses.filter(c => 
+    c.title.toLowerCase().includes(courseSearch.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -200,21 +238,77 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
               </div>
 
               {courses.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Our Courses</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {courses.map(course => (
-                      <div key={course.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl flex items-center gap-4">
-                        <div className="w-16 h-12 bg-zinc-200 dark:bg-zinc-700 rounded-lg overflow-hidden shrink-0">
-                          <img src={`https://picsum.photos/seed/${course.id}/100/100`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold truncate text-sm dark:text-white">{course.title}</h4>
-                          <p className="text-[10px] text-zinc-500 font-medium">By {course.teacherName}</p>
-                        </div>
-                      </div>
-                    ))}
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Our Courses</h3>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search courses..."
+                        value={courseSearch}
+                        onChange={(e) => setCourseSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:text-white"
+                      />
+                    </div>
                   </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredCourses.map(course => {
+                      const isEnrolled = enrolledCourseIds.includes(course.id);
+                      return (
+                        <div 
+                          key={course.id} 
+                          onClick={() => isEnrolled && onSelectCourse(course.id)}
+                          className={cn(
+                            "p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl flex flex-col gap-4 group transition-all",
+                            isEnrolled && "hover:shadow-md cursor-pointer"
+                          )}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-12 bg-zinc-200 dark:bg-zinc-700 rounded-lg overflow-hidden shrink-0 shadow-sm">
+                              <img src={`https://picsum.photos/seed/${course.id}/100/100`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold truncate text-zinc-900 dark:text-white group-hover:text-emerald-600 transition-colors">{course.title}</h4>
+                              <p className="text-xs text-zinc-500 font-medium">By {course.teacherName}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-auto">
+                            {isEnrolled ? (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectCourse(course.id);
+                                }}
+                                className="w-full py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100 dark:border-emerald-500/20"
+                              >
+                                Already Enrolled • Access
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEnrollCourse(course);
+                                }}
+                                disabled={isEnrolling !== null}
+                                className="w-full py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                              >
+                                {isEnrolling === course.id ? 'Joining...' : 'Enroll in Course'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {filteredCourses.length === 0 && (
+                    <div className="text-center py-8 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                      <p className="text-sm text-zinc-500 italic">No courses match your search.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
