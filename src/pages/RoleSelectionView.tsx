@@ -9,9 +9,7 @@ export const RoleSelectionView: React.FC = () => {
   const roles: { id: UserRole; label: string; icon: React.ReactNode; description: string }[] = [
     { id: 'student', label: 'Student', icon: <GraduationCap size={32} />, description: 'Access courses, exams, and learning materials.' },
     { id: 'teacher', label: 'Teacher', icon: <BookOpen size={32} />, description: 'Manage classes, create content, and grade students.' },
-    { id: 'school_manager', label: 'School Manager', icon: <School size={32} />, description: 'Oversee school operations and administration.' },
     { id: 'parent', label: 'Parent', icon: <Users size={32} />, description: 'Monitor your children\'s progress and grades.' },
-    { id: 'provider', label: 'Content Provider', icon: <ShieldCheck size={32} />, description: 'Create and sell courses on the marketplace.' },
     { id: 'super_admin', label: 'Super Admin', icon: <ShieldCheck size={32} />, description: 'Full system access and platform management.' },
   ];
 

@@ -40,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'messages', label: 'Messaging', icon: MessageSquare },
     ...(isSuperAdmin ? [{ id: 'super-admin', label: 'Super Admin', icon: Settings }] : []),
     ...(profile?.role === 'admin' ? [{ id: 'school', label: 'School Manager', icon: Settings }] : []),
-    ...(profile?.role === 'teacher' || profile?.role === 'provider' || isSuperAdmin ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
+    ...(profile?.role === 'teacher' || isSuperAdmin ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
     ...(profile?.role === 'parent' ? [{ id: 'parent', label: 'Parent', icon: Users }] : []),
   ];
 
@@ -125,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                       {isSuperAdmin && (
                         <div className="px-2 py-1 text-[10px] font-bold text-zinc-400 uppercase">Switch Role</div>
                       )}
-                      {isSuperAdmin && ['super_admin', 'school_manager', 'teacher', 'student', 'parent'].map(role => (
+                      {isSuperAdmin && ['super_admin', 'admin', 'teacher', 'student', 'parent'].map(role => (
                         <button 
                           key={role}
                           onClick={() => switchRole(role as any)}
@@ -238,7 +238,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               {isSuperAdmin && (
                 <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                   <div className="px-4 py-2 text-xs font-bold text-zinc-400 uppercase">Switch Role</div>
-                  {['super_admin', 'school_manager', 'teacher', 'student', 'parent'].map(role => (
+                  {['super_admin', 'admin', 'teacher', 'student', 'parent'].map(role => (
                     <button 
                       key={role}
                       onClick={() => {

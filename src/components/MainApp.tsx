@@ -19,7 +19,7 @@ export const MainApp: React.FC = () => {
   const getDefaultTab = (role?: string) => {
     if (role === 'super_admin') return 'super-admin';
     if (role === 'admin') return 'school';
-    if (role === 'teacher' || role === 'provider') return 'my-courses';
+    if (role === 'teacher') return 'my-courses';
     if (role === 'parent') return 'parent';
     return 'dashboard';
   };
@@ -34,7 +34,7 @@ export const MainApp: React.FC = () => {
     // Reset activeTab if the current tab is not appropriate for the new role
     if (activeTab === 'super-admin' && profile.role !== 'super_admin') setActiveTab(getDefaultTab(profile.role));
     if (activeTab === 'school' && profile.role !== 'admin') setActiveTab(getDefaultTab(profile.role));
-    if (activeTab === 'my-courses' && profile.role !== 'teacher' && profile.role !== 'provider' && profile.role !== 'super_admin') setActiveTab(getDefaultTab(profile.role));
+    if (activeTab === 'my-courses' && profile.role !== 'teacher' && profile.role !== 'super_admin') setActiveTab(getDefaultTab(profile.role));
     if (activeTab === 'parent' && profile.role !== 'parent') setActiveTab(getDefaultTab(profile.role));
     
     // If they are on dashboard but they are not a student, maybe they should be moved to their default tab?
