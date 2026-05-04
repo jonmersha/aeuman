@@ -342,7 +342,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
   const prevLesson = currentIndex > 0 ? lessons[currentIndex - 1] : null;
 
   const getYouTubeId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
   };
@@ -701,18 +702,29 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-zinc-900 relative">
           
           {/* Video Player (Sticky at top) */}
-          {currentLesson?.type === 'video' && currentLesson.videoUrl && !isViewingCourseOverview && !selectedSection && (
+          {currentLesson?.type === 'video' && currentLesson.videoUrl && !isViewingCourseOverview && (
             <div className="bg-black w-full aspect-video md:max-h-[60vh] relative shrink-0 z-10">
-              <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${getYouTubeId(currentLesson.videoUrl)}?autoplay=1&rel=0&modestbranding=1`}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="w-full h-full"
-              ></iframe>
+              {getYouTubeId(currentLesson.videoUrl) ? (
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${getYouTubeId(currentLesson.videoUrl)}?autoplay=1&rel=0&modestbranding=1`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
+              ) : (
+                <video 
+                  src={currentLesson.videoUrl} 
+                  controls 
+                  autoPlay 
+                  className="w-full h-full object-contain"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              )}
             </div>
           )}
 
