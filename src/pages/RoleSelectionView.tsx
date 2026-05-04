@@ -10,7 +10,6 @@ export const RoleSelectionView: React.FC = () => {
     { id: 'student', label: 'Student', icon: <GraduationCap size={32} />, description: 'Access courses, exams, and learning materials.' },
     { id: 'teacher', label: 'Teacher', icon: <BookOpen size={32} />, description: 'Manage classes, create content, and grade students.' },
     { id: 'parent', label: 'Parent', icon: <Users size={32} />, description: 'Monitor your children\'s progress and grades.' },
-    { id: 'super_admin', label: 'Super Admin', icon: <ShieldCheck size={32} />, description: 'Full system access and platform management.' },
   ];
 
   return (

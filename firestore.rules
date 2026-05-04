@@ -388,7 +388,7 @@ service cloud.firestore {
     }
 
     match /_connection_test_/{docId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
     }
   }
 }

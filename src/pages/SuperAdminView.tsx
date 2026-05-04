@@ -14,7 +14,7 @@ const SuperAdminView: React.FC = () => {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'schools' | 'users' | 'courses' | 'payments' | 'database'>('schools');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'super_admin' | 'admin' | 'teacher' | 'student' | 'provider'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'super_admin' | 'admin' | 'teacher' | 'student' | 'parent'>('all');
   const [schoolFilter, setSchoolFilter] = useState<'all' | 'active' | 'pending' | 'suspended'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'verified' | 'pending'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -315,10 +315,10 @@ const SuperAdminView: React.FC = () => {
         )}
         {activeSubTab === 'users' && (
           <div className="ml-auto flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
-            {(['all', 'super_admin', 'admin', 'teacher', 'student', 'provider'] as const).map((role) => (
+            {(['all', 'super_admin', 'admin', 'teacher', 'student', 'parent'] as const).map((role) => (
               <button
                 key={role}
-                onClick={() => setRoleFilter(role)}
+                onClick={() => setRoleFilter(role as any)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all",
                   roleFilter === role ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -418,8 +418,8 @@ const SuperAdminView: React.FC = () => {
                           user.role === 'super_admin' ? "bg-zinc-900 text-white" :
                           user.role === 'teacher' ? "bg-blue-100 text-blue-700" : 
                           user.role === 'admin' ? "bg-purple-100 text-purple-700" : 
-                          user.role === 'provider' ? "bg-amber-100 text-amber-700" :
-                          "bg-purple-100 text-purple-700"
+                          user.role === 'parent' ? "bg-amber-100 text-amber-700" :
+                          "bg-zinc-100 text-zinc-700"
                         )}>
                           {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'School Manager' : user.role}
                         </span>
@@ -690,9 +690,7 @@ const SuperAdminView: React.FC = () => {
                 <option value="student">Student</option>
                 <option value="teacher">Teacher</option>
                 <option value="admin">School Manager (Admin)</option>
-                <option value="school_manager">School Manager (Manager)</option>
                 <option value="super_admin">Super Admin</option>
-                <option value="provider">Content Provider</option>
                 <option value="parent">Parent</option>
                 <option value="pending">Pending Approval</option>
               </select>
