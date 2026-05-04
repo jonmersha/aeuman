@@ -1,10 +1,182 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, orderBy, onSnapshot, doc, setDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ChevronRight, Plus, Settings, Trash2, GripVertical, Video, FileText, Type, Layers, Save, ArrowLeft, ExternalLink, Download, X, Link as LinkIcon, BookOpen, Pencil } from 'lucide-react';
+import { ChevronRight, Plus, Settings, Trash2, GripVertical, Video, FileText, Type, Layers, Save, ArrowLeft, ExternalLink, Download, X, Link as LinkIcon, BookOpen, Pencil, Play, Code } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import Markdown from 'react-markdown';
 import { db } from '../firebase';
 import { cn } from '../lib/utils';
 import { QuizEditor } from './QuizEditor';
+
+export interface AdditionalBlock {
+  type: 'text' | 'video' | 'pdf';
+  content: string;
+}
+
+export interface ResourceBlock {
+  title: string;
+  url: string;
+}
+
+const ResourcesEditor = ({ resources, onChange }: { resources: ResourceBlock[], onChange: (resources: ResourceBlock[]) => void }) => {
+  const addResource = () => {
+    onChange([...(resources || []), { title: '', url: '' }]);
+  };
+
+  const updateResource = (idx: number, field: keyof ResourceBlock, value: string) => {
+    const newResources = [...(resources || [])];
+    newResources[idx][field] = value;
+    onChange(newResources);
+  };
+
+  const removeResource = (idx: number) => {
+    const newResources = [...(resources || [])];
+    newResources.splice(idx, 1);
+    onChange(newResources);
+  };
+
+  return (
+    <div className="space-y-4 border-t border-black/5 pt-6 mt-6">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Resources</label>
+        <button onClick={addResource} className="flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
+          <Plus size={12} /> Add Resource
+        </button>
+      </div>
+      {(resources || []).map((res, idx) => (
+        <div key={idx} className="flex gap-2 items-start bg-zinc-50 dark:bg-zinc-800 p-3 rounded-xl border border-black/5">
+          <div className="flex-1 space-y-2">
+            <input
+              type="text"
+              value={res.title}
+              onChange={e => updateResource(idx, 'title', e.target.value)}
+              placeholder="Resource Title"
+              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-black/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-semibold"
+            />
+            <input
+              type="url"
+              value={res.url}
+              onChange={e => updateResource(idx, 'url', e.target.value)}
+              placeholder="https://..."
+              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-black/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
+            />
+          </div>
+          <button
+            onClick={() => removeResource(idx)}
+            className="p-1.5 text-zinc-400 hover:text-red-500 transition mt-1"
+            title="Remove resource"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const AdditionalBlocksEditor = ({ blocks, onChange }: { blocks: AdditionalBlock[], onChange: (blocks: AdditionalBlock[]) => void }) => {
+  const [previewModes, setPreviewModes] = useState<Record<number, boolean>>({});
+
+  const addBlock = (type: 'text' | 'video' | 'pdf') => {
+    onChange([...(blocks || []), { type, content: '' }]);
+  };
+
+  const updateBlock = (idx: number, content: string) => {
+    const newBlocks = [...(blocks || [])];
+    newBlocks[idx].content = content;
+    onChange(newBlocks);
+  };
+
+  const removeBlock = (idx: number) => {
+    const newBlocks = [...(blocks || [])];
+    newBlocks.splice(idx, 1);
+    onChange(newBlocks);
+    const newPreviews = { ...previewModes };
+    delete newPreviews[idx];
+    setPreviewModes(newPreviews);
+  };
+
+  const togglePreview = (idx: number) => {
+    setPreviewModes(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
+  return (
+    <div className="space-y-4 border-t border-black/5 pt-6 mt-6">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Content Blocks</label>
+        <div className="flex gap-2">
+          <button onClick={() => addBlock('text')} className="flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
+            <Type size={12} /> Text
+          </button>
+          <button onClick={() => addBlock('video')} className="flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
+            <Video size={12} /> Video
+          </button>
+          <button onClick={() => addBlock('pdf')} className="flex items-center gap-1 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">
+            <FileText size={12} /> PDF
+          </button>
+        </div>
+      </div>
+      {(blocks || []).map((block, idx) => (
+        <div key={idx} className="relative mb-4 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl overflow-hidden p-4">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+              {block.type === 'text' && <Type size={14} />}
+              {block.type === 'video' && <Video size={14} />}
+              {block.type === 'pdf' && <FileText size={14} />}
+              {block.type} Block
+            </span>
+            <div className="flex items-center gap-2">
+              {block.type === 'text' && (
+                <button
+                  onClick={() => togglePreview(idx)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-white dark:bg-zinc-900 border border-black/10 rounded-md hover:bg-zinc-100 transition"
+                >
+                  {previewModes[idx] ? <><Code size={12} /> Edit</> : <><Play size={12} /> Preview</>}
+                </button>
+              )}
+              <button
+                onClick={() => removeBlock(idx)}
+                className="p-1.5 text-zinc-400 hover:text-red-500 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          {block.type === 'text' ? (
+            previewModes[idx] ? (
+              <div className="markdown-body p-4 bg-white dark:bg-zinc-900 rounded-xl min-h-[150px] border border-black/5">
+                <Markdown>{block.content || '*Empty text block*'}</Markdown>
+              </div>
+            ) : (
+              <textarea 
+                value={block.content}
+                onChange={e => updateBlock(idx, e.target.value)}
+                className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[150px]"
+                placeholder="Write markdown here..."
+              />
+            )
+          ) : block.type === 'video' ? (
+            <input 
+              type="url"
+              value={block.content}
+              onChange={e => updateBlock(idx, e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
+              placeholder="https://www.youtube.com/watch?v=... or .mp4 URL"
+            />
+          ) : (
+            <input 
+              type="url"
+              value={block.content}
+              onChange={e => updateBlock(idx, e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm"
+              placeholder="https://example.com/document.pdf"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 interface LessonEditorProps {
   courseId: string;
@@ -824,56 +996,15 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                     </button>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Videos (One URL per line)</label>
-                      <textarea 
-                        value={(editingSection.videoUrls || []).join('\n')}
-                        onChange={e => setEditingSection({...editingSection, videoUrls: e.target.value.split('\n').filter(Boolean)})}
-                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[100px]"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Text Blocks (Markdown)</label>
-                        <button
-                          onClick={() => {
-                            const current = editingSection.additionalTexts || [];
-                            setEditingSection({...editingSection, additionalTexts: [...current, '']});
-                          }}
-                          className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
-                        >
-                          + Add Text Block
-                        </button>
-                      </div>
-                      {(editingSection.additionalTexts || []).map((text: string, idx: number) => (
-                        <div key={idx} className="relative mb-4">
-                          <textarea 
-                            value={text}
-                            onChange={e => {
-                              const newTexts = [...editingSection.additionalTexts];
-                              newTexts[idx] = e.target.value;
-                              setEditingSection({...editingSection, additionalTexts: newTexts});
-                            }}
-                            className="w-full px-4 py-3 pb-8 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[150px]"
-                            placeholder={`Text block ${idx + 1}...`}
-                          />
-                          <button
-                            onClick={() => {
-                              const newTexts = [...editingSection.additionalTexts];
-                              newTexts.splice(idx, 1);
-                              setEditingSection({...editingSection, additionalTexts: newTexts});
-                            }}
-                            className="absolute bottom-2 right-2 p-1.5 text-zinc-400 hover:text-red-500 transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <AdditionalBlocksEditor 
+                    blocks={editingSection.additionalBlocks || []}
+                    onChange={(blocks) => setEditingSection({...editingSection, additionalBlocks: blocks})}
+                  />
+                  
+                  <ResourcesEditor 
+                    resources={editingSection.resources || []}
+                    onChange={(resources) => setEditingSection({...editingSection, resources})}
+                  />
                 </div>
               </motion.div>
             ) : editingLesson ? (
@@ -995,15 +1126,6 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                           placeholder="https://www.youtube.com/watch?v=..."
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Videos (One URL per line)</label>
-                        <textarea 
-                          value={(editingLesson.videoUrls || []).join('\n')}
-                          onChange={e => setEditingLesson({...editingLesson, videoUrls: e.target.value.split('\n').filter(Boolean)})}
-                          className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[100px]"
-                          placeholder="https://www.youtube.com/watch?v=..."
-                        />
-                      </div>
                     </div>
                   )}
 
@@ -1031,44 +1153,15 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Additional Text Blocks (Markdown)</label>
-                        <button
-                          onClick={() => {
-                            const current = editingLesson.additionalTexts || [];
-                            setEditingLesson({...editingLesson, additionalTexts: [...current, '']});
-                          }}
-                          className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
-                        >
-                          + Add Text Block
-                        </button>
-                      </div>
-                      {(editingLesson.additionalTexts || []).map((text: string, idx: number) => (
-                        <div key={`lesson-text-${idx}`} className="relative mb-4">
-                          <textarea 
-                            value={text}
-                            onChange={e => {
-                              const newTexts = [...editingLesson.additionalTexts];
-                              newTexts[idx] = e.target.value;
-                              setEditingLesson({...editingLesson, additionalTexts: newTexts});
-                            }}
-                            className="w-full px-4 py-3 pb-8 bg-zinc-50 dark:bg-zinc-800 border border-black/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-sm font-mono min-h-[150px]"
-                            placeholder={`Text block ${idx + 1}...`}
-                          />
-                          <button
-                            onClick={() => {
-                              const newTexts = [...editingLesson.additionalTexts];
-                              newTexts.splice(idx, 1);
-                              setEditingLesson({...editingLesson, additionalTexts: newTexts});
-                            }}
-                            className="absolute bottom-2 right-2 p-1.5 text-zinc-400 hover:text-red-500 transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                    <AdditionalBlocksEditor 
+                      blocks={editingLesson.additionalBlocks || []}
+                      onChange={(blocks) => setEditingLesson({...editingLesson, additionalBlocks: blocks})}
+                    />
+                    
+                    <ResourcesEditor 
+                      resources={editingLesson.resources || []}
+                      onChange={(resources) => setEditingLesson({...editingLesson, resources})}
+                    />
                   </div>
                 </div>
               </motion.div>

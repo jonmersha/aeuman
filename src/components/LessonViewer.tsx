@@ -51,6 +51,13 @@ import { AISummary } from './AISummary';
 import { RelatedCourses } from './RelatedCourses';
 import { useEnrollment } from '../hooks/useEnrollment';
 import { OperationType, handleFirestoreError } from '../lib/firestore-errors';
+import { Sidebar } from './LessonViewer/Sidebar';
+import { Section } from './LessonViewer/types';
+import { LessonContent } from './LessonViewer/LessonContent';
+import { CourseOverview } from './LessonViewer/CourseOverview';
+import { SectionOverview } from './LessonViewer/SectionOverview';
+import { Tabs } from './LessonViewer/Tabs';
+import { ResourceCard, QuestionItem } from './LessonViewer/SharedComponents';
 
 import { ExamViewer } from './ExamViewer';
 
@@ -75,7 +82,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [expandedLessons, setExpandedLessons] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'resources' | 'qa' | 'chat' | 'students' | 'contents'>('overview');
+  const [activeTab, setActiveTab] = useState<'resources' | 'qa' | 'chat' | 'students' | 'contents'>('resources');
   const [isMobile, setIsMobile] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [selectedExam, setSelectedExam] = useState<string | null>(null);
@@ -86,10 +93,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
   const [answers, setAnswers] = useState<{ [key: string]: any[] }>({});
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
   const [exams, setExams] = useState<any[]>([]);
-  const [newResource, setNewResource] = useState({ title: '', url: '', type: 'link', context: 'lesson' as 'lesson' | 'section' | 'course' });
   const [newQuestion, setNewQuestion] = useState('');
   const [newAnswer, setNewAnswer] = useState<{ [key: string]: string }>({});
-  const [showAddResource, setShowAddResource] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -176,8 +181,6 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
 
     const isTeacherOrAdmin = profile.role === 'admin' || profile.role === 'super_admin' || (profile.role === 'teacher' && course.teacherId === profile.uid);
 
-    if (!isTeacherOrAdmin) return;
-
     // Fetch Enrolled Students
     const enrollQ = query(
       collectionGroup(db, 'enrollments'),
@@ -186,7 +189,9 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
     );
     const unsubEnrollments = onSnapshot(enrollQ, (snapshot) => {
       setEnrolledStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'enrollments'));
+    }, (error) => {
+      console.error("Error fetching enrollments:", error);
+    });
 
     return () => {
       unsubEnrollments();
@@ -201,27 +206,6 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
   }, []);
 
   const isTeacherOrAdmin = profile?.role === 'admin' || profile?.role === 'super_admin' || (profile?.role === 'teacher' && course?.teacherId === profile?.uid);
-
-  const handleAddResource = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !newResource.title || !newResource.url || !isTeacherOrAdmin) return;
-    
-    try {
-      await addDoc(collection(db, 'resources'), {
-        title: newResource.title,
-        url: newResource.url,
-        type: newResource.type,
-        courseId,
-        lessonId: newResource.context === 'lesson' ? currentLesson?.id : null,
-        section: newResource.context === 'course' ? 'General' : currentLesson?.section || 'General',
-        createdAt: serverTimestamp()
-      });
-      setNewResource({ title: '', url: '', type: 'link', context: 'lesson' });
-      setShowAddResource(false);
-    } catch (error) {
-      console.error("Error adding resource:", error);
-    }
-  };
 
   const handleDeleteResource = async (id: string) => {
     if (!isTeacherOrAdmin) return;
@@ -418,216 +402,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
     return <ExamViewer examId={selectedExam} onBack={() => setSelectedExam(null)} />;
   }
 
-  const renderSidebarContent = () => (
-    <div className={cn("flex flex-col bg-zinc-50 dark:bg-zinc-800", isMobile ? "" : "h-full")}>
-      <div className="p-6 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex flex-col gap-4 shrink-0">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-zinc-900 dark:text-white text-sm">Course Contents</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2.5 py-1 rounded-md">{progress}% COMPLETE</span>
-          </div>
-        </div>
-        <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            className="h-full bg-purple-500"
-          />
-        </div>
-      </div>
-      
-      <div className={cn("pb-20", isMobile ? "" : "flex-1 overflow-y-auto scrollbar-hide")}>
-        {/* Course Overview Button */}
-        <div className="border-b border-zinc-200 dark:border-zinc-800">
-          <button 
-            onClick={() => {
-              setIsViewingCourseOverview(true);
-              setCurrentLesson(null);
-              setSelectedSection(null);
-              if (isMobile) setActiveTab('overview');
-            }}
-            className={cn(
-              "w-full flex items-center gap-4 px-6 py-4 text-left transition-all group",
-              isViewingCourseOverview ? "bg-purple-50/50 border-l-[4px] border-purple-600" : "hover:bg-zinc-50 dark:bg-zinc-800 border-l-[4px] border-transparent"
-            )}
-          >
-            <div className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-              isViewingCourseOverview ? "bg-purple-100 text-purple-700" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 group-hover:bg-zinc-200 dark:bg-zinc-700"
-            )}>
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">Introduction</p>
-              <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">Course Overview</h4>
-            </div>
-          </button>
-        </div>
 
-        {sections.map((section, sIdx) => {
-          const isExpanded = expandedSections.includes(section.name);
-          const isSectionActive = selectedSection?.id === section.id && !currentLesson;
-          return (
-            <div key={`section-${section.name}-${sIdx}`} className="border-b border-zinc-200 dark:border-zinc-800 last:border-0">
-              <button 
-                onClick={() => toggleSection(section)}
-                className={cn(
-                  "w-full flex items-center justify-between px-6 py-4 text-left transition-all group border-l-[4px]",
-                  isSectionActive ? "bg-purple-50/50 border-purple-600" : "hover:bg-zinc-50 dark:bg-zinc-800 border-transparent"
-                )}
-              >
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Module {sIdx + 1}</p>
-                  <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">{section.name}</h4>
-                </div>
-                <div className={cn(
-                  "w-6 h-6 rounded-md flex items-center justify-center transition-all",
-                  isExpanded ? "bg-zinc-800 text-white rotate-90" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 group-hover:bg-zinc-200 dark:bg-zinc-700"
-                )}>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </div>
-              </button>
-              
-              <AnimatePresence initial={false}>
-                {isExpanded && (
-                  <motion.div 
-                    initial={{ height: 0 }}
-                    animate={{ height: 'auto' }}
-                    exit={{ height: 0 }}
-                    className="overflow-hidden bg-white dark:bg-zinc-900"
-                  >
-                    {section.mainLessons.map((main, index) => {
-                      const hasSubs = main.subs.length > 0;
-                      const isLessonExpanded = expandedLessons.includes(main.id);
-                      const isActive = currentLesson?.id === main.id;
-                      const isCompleted = completedLessons.includes(main.id);
-                      
-                      return (
-                        <div key={`${main.id}-${index}`}>
-                          <div className={cn(
-                            "flex items-stretch group border-l-[4px] transition-all",
-                            isActive ? "border-purple-600 bg-purple-50/30" : "border-transparent hover:bg-zinc-50 dark:bg-zinc-800"
-                          )}>
-                            <button
-                              onClick={() => {
-                                setCurrentLesson(main);
-                                setSelectedSection(section);
-                                setIsViewingCourseOverview(false);
-                                setAudioUrl(null);
-                                if (isMobile) {
-                                  setActiveTab('overview');
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }
-                              }}
-                              className="flex-1 flex items-start gap-4 px-6 py-3.5 text-left"
-                            >
-                              <div className={cn(
-                                "mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 border transition-all",
-                                isCompleted 
-                                  ? "bg-purple-600 border-purple-600 text-white" 
-                                  : isActive 
-                                    ? "border-purple-600 text-purple-600 bg-purple-50" 
-                                    : "border-zinc-300 text-zinc-400 dark:text-zinc-500 bg-white dark:bg-zinc-900 group-hover:border-zinc-400"
-                              )}>
-                                {isCompleted ? <CheckCircle2 className="w-3 h-3" /> : <span className="text-[9px] font-bold">{main.order}</span>}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className={cn(
-                                  "text-sm font-medium leading-snug",
-                                  isActive ? "text-purple-900 font-semibold" : "text-zinc-700 dark:text-zinc-300",
-                                  isCompleted && !isActive && "text-zinc-500 dark:text-zinc-400 dark:text-zinc-500"
-                                )}>{main.title}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <div className="flex items-center gap-1">
-                                    {main.type === 'video' ? <Video className="w-3 h-3 text-zinc-400 dark:text-zinc-500" /> : <FileText className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />}
-                                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize">{main.type}</span>
-                                  </div>
-                                  {hasSubs && (
-                                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">{main.subs.length} sub-lessons</span>
-                                  )}
-                                </div>
-                              </div>
-                            </button>
-                            {hasSubs && (
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleLesson(main.id);
-                                }}
-                                className="px-4 hover:bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 transition-colors"
-                              >
-                                <ChevronRight className={cn("w-4 h-4 transition-transform duration-300", isLessonExpanded && "rotate-90")} />
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Sub-lessons */}
-                          {hasSubs && (
-                            <AnimatePresence initial={false}>
-                              {isLessonExpanded && (
-                                <motion.div 
-                                  initial={{ height: 0 }}
-                                  animate={{ height: 'auto' }}
-                                  exit={{ height: 0 }}
-                                  className="overflow-hidden bg-zinc-50 dark:bg-zinc-800/80"
-                                >
-                                  {main.subs.map((sub, index) => {
-                                    const isSubActive = currentLesson?.id === sub.id;
-                                    const isSubCompleted = completedLessons.includes(sub.id);
-                                    return (
-                                      <button
-                                        key={`${sub.id}-${index}`}
-                                        onClick={() => {
-                                          setCurrentLesson(sub);
-                                          setSelectedSection(section);
-                                          setIsViewingCourseOverview(false);
-                                          setAudioUrl(null);
-                                          if (isMobile) {
-                                            setActiveTab('overview');
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                          }
-                                        }}
-                                        className={cn(
-                                          "w-full flex items-start gap-5 px-14 py-4 text-left transition-all border-l-[6px]",
-                                          isSubActive ? "border-purple-600 bg-purple-50/60" : "border-transparent hover:bg-zinc-100 dark:bg-zinc-800"
-                                        )}
-                                      >
-                                        <div className={cn(
-                                          "mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 border-2 transition-all",
-                                          isSubCompleted 
-                                            ? "bg-purple-600 border-purple-600 text-white" 
-                                            : isSubActive 
-                                              ? "border-purple-600 text-purple-600 bg-white dark:bg-zinc-900" 
-                                              : "border-zinc-200 dark:border-zinc-800 text-zinc-300 bg-white dark:bg-zinc-900"
-                                        )}>
-                                          {isSubCompleted ? <CheckCircle2 className="w-3 h-3" /> : <span className="text-[9px] font-black">{sub.order}</span>}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className={cn(
-                                            "text-xs font-bold leading-snug tracking-tight",
-                                            isSubActive ? "text-purple-900" : "text-zinc-700 dark:text-zinc-300",
-                                            isSubCompleted && !isSubActive && "text-zinc-400 dark:text-zinc-500"
-                                          )}>{sub.title}</p>
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 z-50 bg-white dark:bg-zinc-900 flex flex-col overflow-hidden">
@@ -694,7 +469,36 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
             "w-80 border-r border-zinc-200 dark:border-zinc-800 shrink-0 z-20 hidden md:block",
             isMobile ? "absolute inset-0 z-50 w-full" : ""
           )}>
-            {renderSidebarContent()}
+            <Sidebar 
+              isMobile={isMobile}
+              progress={progress}
+              sections={sections as Section[]}
+              expandedSections={expandedSections}
+              expandedLessons={expandedLessons}
+              completedLessons={completedLessons}
+              currentLesson={currentLesson}
+              selectedSection={selectedSection}
+              isViewingCourseOverview={isViewingCourseOverview}
+              onViewOverview={() => {
+                setIsViewingCourseOverview(true);
+                setCurrentLesson(null);
+                setSelectedSection(null);
+                if (isMobile) setActiveTab('resources');
+              }}
+              onToggleSection={toggleSection}
+              onToggleLesson={toggleLesson}
+              onSelectLesson={(lesson, section) => {
+                setCurrentLesson(lesson);
+                setSelectedSection(section);
+                setIsViewingCourseOverview(false);
+                setAudioUrl(null);
+                if (isMobile) {
+                  setActiveTab('resources');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              onSetActiveTab={setActiveTab}
+            />
           </div>
         )}
 
@@ -730,923 +534,245 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
 
           {/* Scrollable Content Below Video */}
           <div className="flex-1 overflow-y-auto scroll-smooth">
-            <div className="max-w-5xl mx-auto w-full">
-              <AnimatePresence mode="wait">
-                {isViewingCourseOverview ? (
-                  <motion.div
-                    key="course-overview"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex flex-col"
-                  >
-                    {/* Tabs for Course Overview on Mobile */}
-                    {isMobile && (
-                      <div className="border-b border-zinc-200 dark:border-zinc-800 flex overflow-x-auto scrollbar-hide sticky top-0 bg-white dark:bg-zinc-900 z-10">
-                        {[
-                          { id: 'contents', label: 'Contents' },
-                          { id: 'overview', label: 'Overview' },
-                        ].map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={cn(
-                              "px-6 py-4 text-sm font-semibold whitespace-nowrap transition-all relative",
-                              activeTab === tab.id ? "text-purple-700" : "text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-200"
-                            )}
-                          >
-                            {tab.label}
-                            {activeTab === tab.id && (
-                              <motion.div layoutId="activeTabMobile" className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {isMobile && activeTab === 'contents' ? (
-                      renderSidebarContent()
-                    ) : (
-                      <div className="p-6 md:p-12 space-y-8">
-                        <div className="space-y-4">
-                          <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight text-zinc-900 dark:text-white leading-tight">Course Overview</h2>
-                          <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">{course?.title}</p>
-                        </div>
-                        <div className="markdown-body">
-                          <Markdown>{course?.description || 'No course overview provided.'}</Markdown>
-                        </div>
-
-                        {!enrollment && (
-                          <div className="mt-8 p-6 bg-indigo-50 dark:bg-zinc-800 rounded-2xl border border-indigo-100 dark:border-zinc-700">
-                            <h3 className="font-display font-bold text-lg mb-2">Interested in this course?</h3>
-                            <p className="text-zinc-600 dark:text-zinc-300 mb-4">Enroll now to access all lessons, resources, and quizzes.</p>
-                            <button 
-                              onClick={handleEnroll}
-                              disabled={isEnrolling}
-                              className="px-8 py-3 bg-brand-primary text-white rounded-xl font-display font-bold hover:bg-brand-secondary transition-all disabled:opacity-50"
-                            >
-                              {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
-                            </button>
-                          </div>
-                        )}
-                        {sections.length > 0 && (
-                          <div className="pt-12 border-t border-zinc-100 dark:border-zinc-800">
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">Course Curriculum</h3>
-                            <div className="space-y-4">
-                              {sections.map((section, idx) => (
-                                <div 
-                                  key={`${section.id}-${idx}`} 
-                                  onClick={() => {
-                                    if (section.mainLessons && section.mainLessons.length > 0) {
-                                      setCurrentLesson(section.mainLessons[0]);
-                                      setSelectedSection(section);
-                                      setIsViewingCourseOverview(false);
-                                      setAudioUrl(null);
-                                      if (isMobile) {
-                                        setActiveTab('overview');
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                      }
-                                    }
-                                  }}
-                                  className="p-6 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-800 cursor-pointer hover:border-purple-200 transition-all"
-                                >
-                                  <div className="flex items-center gap-4 mb-2">
-                                    <span className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 font-semibold text-xs uppercase tracking-wider">Section {idx + 1}</span>
-                                    <h4 className="font-bold text-zinc-900 dark:text-white text-lg">{section.name}</h4>
-                                  </div>
-                                  {section.overview && (
-                                    <p className="text-zinc-600 dark:text-zinc-300 text-sm line-clamp-2">{section.overview}</p>
-                                  )}
-                                  {/* Section Quiz */}
-                                  {exams.filter(e => e.sectionId === section.id).map(exam => (
-                                    <div key={exam.id} className="mt-4 p-4 bg-white dark:bg-zinc-900 border border-purple-100 rounded-xl flex items-center justify-between">
-                                      <div>
-                                        <h5 className="font-bold text-purple-900">{exam.title}</h5>
-                                        <p className="text-xs text-purple-700 mt-1">{exam.questions?.length || 0} Questions</p>
-                                      </div>
-                                      <button 
-                                        onClick={() => setSelectedExam(exam.id)}
-                                        className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg font-bold text-sm hover:bg-purple-200 transition-all"
-                                      >
-                                        Take Quiz
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Related Courses */}
-                        <div className="pt-12 border-t border-zinc-100 dark:border-zinc-800">
-                          <RelatedCourses courseId={courseId} category={course?.category || ''} />
-                        </div>
-
-                        {/* Resources */}
-                        <div className="pt-12 border-t border-zinc-100 dark:border-zinc-800">
-                          <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">Resources</h3>
-                          <div className="space-y-4">
-                            {resources.map(res => (
-                              <a 
-                                key={res.id} 
-                                href={res.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:shadow-md transition-all"
+            <div className="max-w-7xl mx-auto w-full">
+              {activeTab === 'contents' && isMobile ? (
+                <Sidebar 
+                  isMobile={isMobile}
+                  progress={progress}
+                  sections={sections as Section[]}
+                  expandedSections={expandedSections}
+                  expandedLessons={expandedLessons}
+                  completedLessons={completedLessons}
+                  currentLesson={currentLesson}
+                  selectedSection={selectedSection}
+                  isViewingCourseOverview={isViewingCourseOverview}
+                  onViewOverview={() => {
+                    setIsViewingCourseOverview(true);
+                    setCurrentLesson(null);
+                    setSelectedSection(null);
+                    setActiveTab('resources');
+                  }}
+                  onToggleSection={toggleSection}
+                  onToggleLesson={toggleLesson}
+                  onSelectLesson={(lesson, section) => {
+                    setCurrentLesson(lesson);
+                    setSelectedSection(section);
+                    setIsViewingCourseOverview(false);
+                    setAudioUrl(null);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onSetActiveTab={setActiveTab}
+                />
+              ) : (
+                <div className="flex flex-col">
+                  {/* Main Content Layer - Always Visible */}
+                  <div className="border-b border-zinc-100 dark:border-zinc-800">
+                    <AnimatePresence mode="wait">
+                      {isViewingCourseOverview ? (
+                        <motion.div
+                          key="course-overview"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex flex-col"
+                        >
+                          <CourseOverview 
+                            course={course}
+                            enrollment={enrollment}
+                            sections={sections}
+                            resources={resources.filter(r => !r.lessonId && (r.section === 'General' || !r.section))}
+                            exams={exams}
+                            isEnrolling={isEnrolling}
+                            onEnroll={handleEnroll}
+                            onSelectLesson={(lesson, section) => {
+                              setCurrentLesson(lesson);
+                              setSelectedSection(section);
+                              setIsViewingCourseOverview(false);
+                              setAudioUrl(null);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            onOpenExam={setSelectedExam}
+                            courseId={courseId}
+                          />
+                        </motion.div>
+                      ) : selectedSection && !currentLesson ? (
+                        <motion.div
+                          key={`section-${selectedSection.id}`}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex flex-col"
+                        >
+                          <SectionOverview 
+                            selectedSection={selectedSection}
+                            onSelectLesson={setCurrentLesson}
+                            getYouTubeId={getYouTubeId}
+                          />
+                        </motion.div>
+                      ) : currentLesson ? (
+                        <motion.div 
+                          key={currentLesson.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex flex-col"
+                        >
+                          {!(enrollment || currentLesson?.isPublic || selectedSection?.isPublic || course?.isPublic) ? (
+                            <div className="p-12 text-center">
+                              <h3 className="text-2xl font-bold mb-4">Enroll to access this lesson</h3>
+                              <p className="text-zinc-500 dark:text-zinc-400 mb-8">This lesson is restricted. Enroll in the course to access all content.</p>
+                              <button 
+                                onClick={handleEnroll}
+                                disabled={isEnrolling}
+                                className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black text-lg hover:bg-purple-700 transition-all disabled:opacity-50"
                               >
-                                <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
-                                  <FileText className="w-5 h-5" />
-                                </div>
-                                <div>
-                                  <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">{res.title}</h4>
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize">{res.type}</p>
-                                </div>
-                              </a>
-                            ))}
-                            {resources.length === 0 && (
-                              <p className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 text-sm italic">No resources available.</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Final Exam */}
-                        {exams.filter(e => e.type === 'final').length > 0 && (
-                          <div className="pt-12 border-t border-zinc-100 dark:border-zinc-800">
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">Final Exam</h3>
-                            <div className="space-y-4">
-                              {exams.filter(e => e.type === 'final').map(exam => (
-                                <div key={exam.id} className="p-6 bg-purple-600 rounded-2xl border border-purple-700 flex items-center justify-between shadow-lg">
-                                  <div>
-                                    <h4 className="font-bold text-white text-xl">{exam.title}</h4>
-                                    <p className="text-purple-100 mt-1">{exam.questions?.length || 0} Questions • {exam.duration || 0} Minutes</p>
-                                  </div>
-                                  <button 
-                                    onClick={() => setSelectedExam(exam.id)}
-                                    className="px-6 py-3 bg-white dark:bg-zinc-900 text-purple-700 rounded-xl font-black shadow-sm hover:bg-purple-50 transition-all"
-                                  >
-                                    Start Exam
-                                  </button>
-                                </div>
-                              ))}
+                                {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
+                              </button>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                ) : selectedSection && !currentLesson ? (
-                <motion.div
-                  key={`section-${selectedSection.id}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex flex-col"
-                >
-                  {/* Tabs for Section Overview on Mobile */}
-                  {isMobile && (
-                    <div className="border-b border-zinc-200 dark:border-zinc-800 flex overflow-x-auto scrollbar-hide sticky top-0 bg-white dark:bg-zinc-900 z-10">
-                      {[
-                        { id: 'contents', label: 'Contents' },
-                        { id: 'overview', label: 'Overview' },
-                      ].map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id as any)}
-                          className={cn(
-                            "px-6 py-4 text-sm font-semibold whitespace-nowrap transition-all relative",
-                            activeTab === tab.id ? "text-purple-700" : "text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-200"
+                          ) : (
+                            <LessonContent 
+                              currentLesson={currentLesson}
+                              completedLessons={completedLessons}
+                              isSpeaking={isSpeaking}
+                              onTTS={handleTTS}
+                              onToggleComplete={toggleComplete}
+                              onSelectLesson={setCurrentLesson}
+                              onOpenExam={setSelectedExam}
+                              courseId={courseId}
+                              course={course}
+                              lessons={lessons}
+                              exams={exams}
+                              getYouTubeId={getYouTubeId}
+                            />
                           )}
-                        >
-                          {tab.label}
-                          {activeTab === tab.id && (
-                            <motion.div layoutId="activeTabMobile" className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {isMobile && activeTab === 'contents' ? (
-                    renderSidebarContent()
-                  ) : (
-                    <div className="p-6 md:p-12 space-y-8">
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-xs font-display font-bold rounded-md">
-                            Module Summary
-                          </span>
-                        </div>
-                        <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight text-zinc-900 dark:text-white leading-tight">{selectedSection.name}</h2>
-                      </div>
-                      <div className="markdown-body">
-                        <Markdown>{selectedSection.overview || 'No overview provided for this module.'}</Markdown>
-                      </div>
-
-                      {/* Section Additional Videos */}
-                      {selectedSection.videoUrls && selectedSection.videoUrls.length > 0 && (
-                        <div className="space-y-6 mt-8">
-                          {selectedSection.videoUrls.map((vUrl: string, idx: number) => (
-                            <div key={idx} className="bg-black w-full aspect-video rounded-xl overflow-hidden shadow-lg relative">
-                              {getYouTubeId(vUrl) ? (
-                                <iframe
-                                  width="100%"
-                                  height="100%"
-                                  src={`https://www.youtube.com/embed/${getYouTubeId(vUrl)}?rel=0&modestbranding=1`}
-                                  title={`YouTube video player ${idx + 1}`}
-                                  frameBorder="0"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                  className="w-full h-full"
-                                ></iframe>
-                              ) : (
-                                <video 
-                                  src={vUrl} 
-                                  controls 
-                                  className="w-full h-full object-contain"
-                                >
-                                  Your browser does not support the video tag.
-                                </video>
-                              )}
-                            </div>
-                          ))}
+                        </motion.div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-40">
+                          <BookOpen className="w-12 h-12 text-zinc-300 mb-4" />
+                          <p className="text-zinc-500">Pick a lesson to start learning.</p>
                         </div>
                       )}
+                    </AnimatePresence>
+                  </div>
 
-                      {/* Section Additional Text Blocks */}
-                      {selectedSection.additionalTexts && selectedSection.additionalTexts.length > 0 && (
-                        <div className="space-y-8 mt-8">
-                          {selectedSection.additionalTexts.map((text: string, idx: number) => (
-                            <div key={idx} className="markdown-body border-t border-zinc-100 dark:border-zinc-800 pt-8">
-                              <Markdown>{text}</Markdown>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="pt-12 border-t border-zinc-100 dark:border-zinc-800">
-                        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">Lessons in this Section</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {selectedSection.mainLessons.map((lesson: any, idx: number) => (
-                            <button
-                              key={`section-lesson-${lesson.id}`}
-                              onClick={() => setCurrentLesson(lesson)}
-                              className="flex items-center gap-4 p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:shadow-md hover:border-purple-300 transition-all text-left group"
-                            >
-                              <div className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 flex items-center justify-center text-sm font-bold group-hover:bg-purple-50 group-hover:text-purple-700 group-hover:border-purple-200 transition-all">
-                                {idx + 1}
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">{lesson.title}</h4>
-                                <p className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize mt-0.5">{lesson.type}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              ) : currentLesson ? (
-                <motion.div 
-                  key={currentLesson.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex flex-col"
-                >
-                  {!(enrollment || currentLesson?.isPublic || selectedSection?.isPublic || course?.isPublic) ? (
-                    <div className="p-12 text-center">
-                      <h3 className="text-2xl font-bold mb-4">Enroll to access this lesson</h3>
-                      <p className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 mb-8">This lesson is restricted. Enroll in the course to access all content.</p>
-                      <button 
-                        onClick={handleEnroll}
-                        disabled={isEnrolling}
-                        className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black text-lg hover:bg-purple-700 transition-all disabled:opacity-50"
-                      >
-                        {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                  {/* Content Section */}
-                  <div className="p-6 md:p-12 space-y-8">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-wider">
-                            {currentLesson.section || 'General'}
-                          </span>
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                          <span className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 text-xs font-semibold uppercase tracking-wider">
-                            {currentLesson.type}
-                          </span>
-                        </div>
-                        <h2 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-zinc-900 dark:text-white">{currentLesson.title}</h2>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 shrink-0">
-                        <button 
-                          onClick={handleTTS}
-                          disabled={isSpeaking}
-                          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:bg-zinc-700 transition-all disabled:opacity-50 font-semibold text-sm"
-                        >
-                          {isSpeaking ? <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" /> : <Volume2 className="w-4 h-4" />}
-                          Listen
-                        </button>
-                        <button 
-                          onClick={toggleComplete}
-                          className={cn(
-                            "flex items-center gap-2 px-5 py-2 rounded-lg font-semibold text-sm transition-all",
-                            completedLessons.includes(currentLesson.id)
-                              ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                              : "bg-zinc-900 text-white hover:bg-zinc-800"
-                          )}
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          {completedLessons.includes(currentLesson.id) ? 'Completed' : 'Mark Complete'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Tabs */}
-                    <div className="border-b border-zinc-200 dark:border-zinc-800 flex overflow-x-auto scrollbar-hide sticky top-0 bg-white dark:bg-zinc-900 z-10">
-                      {[
-                        ...(isMobile ? [{ id: 'contents', label: 'Contents' }] : []),
-                        { id: 'overview', label: 'Overview' },
+                  {/* Supplementary Tabs and Content Layer */}
+                  <div className="flex flex-col">
+                    <Tabs 
+                      tabs={[
                         { id: 'resources', label: 'Resources' },
                         { id: 'qa', label: 'Q&A' },
                         { id: 'chat', label: 'Chat' },
                         { id: 'students', label: 'Students' }
-                      ].map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id as any)}
-                          className={cn(
-                            "px-6 py-4 text-sm font-semibold whitespace-nowrap transition-all relative",
-                            activeTab === tab.id ? "text-purple-700" : "text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-200"
-                          )}
-                        >
-                          {tab.label}
-                          {activeTab === tab.id && (
-                            <motion.div layoutId="activeTabLesson" className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                      ]}
+                      activeTab={activeTab === 'contents' ? 'resources' : activeTab}
+                      onSetActiveTab={setActiveTab as any}
+                      layoutId="supplementaryTabs"
+                      className="bg-zinc-50 dark:bg-zinc-900/50 sticky top-0"
+                    />
 
-                    {/* Tab Content */}
-                    <div className="min-h-[500px] pb-20">
-                      {isMobile && activeTab === 'contents' ? (
-                        renderSidebarContent()
-                      ) : activeTab === 'overview' ? (
-                        <div className="space-y-8 animate-in fade-in duration-500">
-                          {currentLesson.shortDescription && (
-                            <p className="text-lg text-zinc-600 dark:text-zinc-300 font-medium italic border-l-4 border-brand-primary pl-6">
-                              "{currentLesson.shortDescription}"
-                            </p>
-                          )}
-                          
-                          {currentLesson.type === 'pdf' && currentLesson.pdfUrl && (
-                            <div className="w-full h-[600px] md:h-[800px] rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm bg-zinc-50 dark:bg-zinc-800">
-                              <iframe src={currentLesson.pdfUrl} className="w-full h-full" title="PDF Viewer" />
-                            </div>
-                          )}
-
-                          <div className="markdown-body">
-                            <Markdown>{currentLesson.content || 'No detailed content provided for this lesson.'}</Markdown>
-                          </div>
-
-                          {/* Lesson Additional Videos */}
-                          {currentLesson.videoUrls && currentLesson.videoUrls.length > 0 && (
-                            <div className="space-y-6 mt-8">
-                              {currentLesson.videoUrls.map((vUrl: string, idx: number) => (
-                                <div key={`lesson-video-${idx}`} className="bg-black w-full aspect-video rounded-xl overflow-hidden shadow-lg relative">
-                                  {getYouTubeId(vUrl) ? (
-                                    <iframe
-                                      width="100%"
-                                      height="100%"
-                                      src={`https://www.youtube.com/embed/${getYouTubeId(vUrl)}?rel=0&modestbranding=1`}
-                                      title={`YouTube video player ${idx + 1}`}
-                                      frameBorder="0"
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                      allowFullScreen
-                                      className="w-full h-full"
-                                    ></iframe>
-                                  ) : (
-                                    <video 
-                                      src={vUrl} 
-                                      controls 
-                                      className="w-full h-full object-contain"
-                                    >
-                                      Your browser does not support the video tag.
-                                    </video>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Lesson Additional Text Blocks */}
-                          {currentLesson.additionalTexts && currentLesson.additionalTexts.length > 0 && (
-                            <div className="space-y-8 mt-8">
-                              {currentLesson.additionalTexts.map((text: string, idx: number) => (
-                                <div key={`lesson-text-${idx}`} className="markdown-body border-t border-zinc-100 dark:border-zinc-800 pt-8">
-                                  <Markdown>{text}</Markdown>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <AISummary content={currentLesson.content || ''} title={currentLesson.title} />
-                          <RelatedCourses courseId={courseId} category={course?.category || ''} />
-
-                          {/* Sub-lessons Grid */}
-                          {lessons.some(l => l.parentId === currentLesson.id) && (
-                            <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800">
-                              <h3 className="text-lg font-display font-bold text-zinc-900 dark:text-white mb-6">Module Contents</h3>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {lessons.filter(l => l.parentId === currentLesson.id).map((sub: any, idx: number) => (
-                                  <button
-                                    key={`sub-${sub.id}`}
-                                    onClick={() => setCurrentLesson(sub)}
-                                    className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:shadow-md hover:border-brand-primary/30 transition-all text-left group"
-                                  >
-                                    <div className="w-8 h-8 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 flex items-center justify-center text-xs font-bold group-hover:bg-purple-50 group-hover:text-purple-700 group-hover:border-purple-200 transition-all">
-                                      {idx + 1}
-                                    </div>
-                                    <div>
-                                      <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">{sub.title}</h4>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Lesson Quiz */}
-                          {exams.filter(e => e.lessonId === currentLesson.id).map(exam => (
-                            <div key={exam.id} className="mt-8 p-6 bg-purple-50 border border-purple-200 rounded-2xl">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h3 className="text-lg font-bold text-purple-900">{exam.title}</h3>
-                                  <p className="text-sm text-purple-700 mt-1">{exam.questions?.length || 0} Questions</p>
-                                </div>
-                                <button 
-                                  onClick={() => setSelectedExam(exam.id)}
-                                  className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-all"
-                                >
-                                  Take Quiz
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {activeTab === 'chat' && (
-                        <div className="animate-in fade-in duration-500">
+                    <div className="min-h-[400px] bg-white dark:bg-zinc-900">
+                      {activeTab === 'chat' ? (
+                        <div className="p-6 md:p-12 animate-in fade-in duration-500">
                           <CourseChat courseId={courseId} />
                         </div>
-                      )}
-
-                      {activeTab === 'students' && (
-                        <div className="space-y-6 animate-in fade-in duration-500">
-                          <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">Enrolled Students ({enrolledStudents.length})</h3>
-                          <div className="grid grid-cols-1 gap-4">
-                            {enrolledStudents.map((student, index) => (
-                              <div key={`${student.studentId}-${index}`} className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                                <div className="flex items-center gap-4">
-                                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">
-                                    {student.studentName?.charAt(0)}
-                                  </div>
-                                  <div>
-                                    <div className="font-semibold text-zinc-900 dark:text-white text-sm">{student.studentName}</div>
-                                    <div className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500">Enrolled: {new Date(student.enrolledAt?.toMillis()).toLocaleDateString()}</div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <div className="w-32 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-purple-500" style={{ width: `${student.progress || 0}%` }} />
-                                  </div>
-                                  <span className="text-sm font-bold text-zinc-900 dark:text-white">{student.progress || 0}%</span>
-                                  {isTeacherOrAdmin && (
-                                    <button 
-                                      onClick={() => handleDeleteEnrollment(student.id)}
-                                      className="p-2 text-zinc-400 dark:text-zinc-500 hover:text-red-600 transition-colors"
-                                      title="Remove Enrollment"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          {enrolledStudents.length === 0 && (
-                            <p className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 italic">No enrolled students found.</p>
-                          )}
-                        </div>
-                      )}
-
-                      {activeTab === 'resources' && (
-                        <div className="space-y-8 animate-in fade-in duration-500">
+                      ) : activeTab === 'resources' ? (
+                        <div className="p-6 md:p-12 space-y-8 animate-in fade-in duration-500">
                           <div className="flex items-center justify-between">
                             <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Resources & Materials</h3>
-                            {isTeacherOrAdmin && (
-                              <button 
-                                onClick={() => setShowAddResource(!showAddResource)}
-                                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all text-sm font-semibold shadow-sm"
-                              >
-                                {showAddResource ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                                {showAddResource ? 'Cancel' : 'Add Resource'}
-                              </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {resources.length > 0 ? (
+                              resources.map(res => (
+                                <ResourceCard 
+                                  key={res.id} 
+                                  resource={res} 
+                                  onDelete={setConfirmDeleteId} 
+                                  isAdmin={isTeacherOrAdmin} 
+                                />
+                              ))
+                            ) : (
+                              <div className="col-span-full py-20 text-center text-zinc-500 dark:text-zinc-400">
+                                No resources found for this course.
+                              </div>
                             )}
                           </div>
-
-                          {showAddResource && (
-                            <motion.form 
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              onSubmit={handleAddResource}
-                              className="p-6 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-6 overflow-hidden mb-8 shadow-sm"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-bold text-zinc-900 dark:text-white text-sm">Add New Resource</h4>
-                                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded-md uppercase tracking-wider">
-                                  Contextual Resource
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 uppercase tracking-wider ml-1">Resource Title</label>
-                                  <input 
-                                    type="text" 
-                                    placeholder="e.g. Course Syllabus"
-                                    value={newResource.title}
-                                    onChange={e => setNewResource({...newResource, title: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm"
-                                    required
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 uppercase tracking-wider ml-1">Resource URL</label>
-                                  <input 
-                                    type="url" 
-                                    placeholder="https://example.com/file.pdf"
-                                    value={newResource.url}
-                                    onChange={e => setNewResource({...newResource, url: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm"
-                                    required
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 uppercase tracking-wider ml-1">Type</label>
-                                  <select 
-                                    value={newResource.type}
-                                    onChange={e => setNewResource({...newResource, type: e.target.value})}
-                                    className="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm"
-                                  >
-                                    <option value="link">Link</option>
-                                    <option value="pdf">PDF</option>
-                                    <option value="video">Video</option>
-                                    <option value="document">Document</option>
-                                    <option value="other">Other</option>
-                                  </select>
-                                </div>
-                                <div className="space-y-2">
-                                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 uppercase tracking-wider ml-1">Context</label>
-                                  <select 
-                                    value={newResource.context}
-                                    onChange={e => setNewResource({...newResource, context: e.target.value as any})}
-                                    className="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm"
-                                  >
-                                    <option value="lesson">For this Lesson ({currentLesson?.title})</option>
-                                    <option value="section">For this Section ({currentLesson?.section})</option>
-                                    <option value="course">Course Wide</option>
-                                  </select>
-                                </div>
-                              </div>
-
-                              <button type="submit" className="w-full py-3 bg-zinc-900 text-white rounded-lg font-semibold hover:bg-zinc-800 transition-all shadow-sm">
-                                Save Resource
-                              </button>
-                            </motion.form>
-                          )}
-
-                          {resources.length > 0 ? (
-                            <div className="space-y-10">
-                              {/* Lesson Resources */}
-                              {resources.some(r => r.lessonId === currentLesson?.id) && (
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-purple-500 rounded-full" />
-                                    <h4 className="font-bold text-zinc-900 dark:text-white text-sm">For this Lesson</h4>
-                                  </div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {resources.filter(r => r.lessonId === currentLesson?.id).map((resource, index) => (
-                                      <div key={`lesson-${resource.id}-${index}`} className="group relative flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:shadow-md transition-all">
-                                        <div className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 group-hover:bg-purple-50 group-hover:text-purple-700 transition-all">
-                                          {resource.type === 'pdf' ? <FileText className="w-5 h-5" /> : 
-                                           resource.type === 'video' ? <Video className="w-5 h-5" /> : 
-                                           <ExternalLink className="w-5 h-5" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <h4 className="font-semibold text-zinc-900 dark:text-white truncate text-sm">{resource.title}</h4>
-                                          <p className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize mt-0.5">{resource.type}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <a 
-                                            href={resource.url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="p-2 hover:bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-purple-700 transition-all"
-                                          >
-                                            <Download className="w-4 h-4" />
-                                          </a>
-                                          {isTeacherOrAdmin && (
-                                            <button 
-                                              onClick={() => setConfirmDeleteId(resource.id)}
-                                              className="p-2 hover:bg-red-50 rounded-md text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-red-600 transition-all"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Section Resources */}
-                              {resources.some(r => r.section === currentLesson?.section && !r.lessonId) && (
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                                    <h4 className="font-bold text-zinc-900 dark:text-white text-sm">For this Section</h4>
-                                  </div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {resources.filter(r => r.section === currentLesson?.section && !r.lessonId).map((resource, index) => (
-                                      <div key={`section-${resource.id}-${index}`} className="group relative flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:shadow-md transition-all">
-                                        <div className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 group-hover:bg-blue-50 group-hover:text-blue-700 transition-all">
-                                          {resource.type === 'pdf' ? <FileText className="w-5 h-5" /> : 
-                                           resource.type === 'video' ? <Video className="w-5 h-5" /> : 
-                                           <ExternalLink className="w-5 h-5" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <h4 className="font-semibold text-zinc-900 dark:text-white truncate text-sm">{resource.title}</h4>
-                                          <p className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize mt-0.5">{resource.type}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <a 
-                                            href={resource.url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="p-2 hover:bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-blue-700 transition-all"
-                                          >
-                                            <Download className="w-4 h-4" />
-                                          </a>
-                                          {isTeacherOrAdmin && (
-                                            <button 
-                                              onClick={() => setConfirmDeleteId(resource.id)}
-                                              className="p-2 hover:bg-red-50 rounded-md text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-red-600 transition-all"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Course Resources */}
-                              {resources.some(r => !r.lessonId && (!r.section || r.section === 'General' || (r.section !== currentLesson?.section && r.section !== 'General'))) && (
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-zinc-400 rounded-full" />
-                                    <h4 className="font-bold text-zinc-900 dark:text-white text-sm">Course Wide</h4>
-                                  </div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {resources.filter(r => !r.lessonId && (!r.section || r.section === 'General' || (r.section !== currentLesson?.section && r.section !== 'General'))).map((resource, index) => (
-                                      <div key={`course-${resource.id}-${index}`} className="group relative flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:shadow-md transition-all">
-                                        <div className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 group-hover:bg-zinc-100 dark:bg-zinc-800 group-hover:text-zinc-700 dark:text-zinc-300 transition-all">
-                                          {resource.type === 'pdf' ? <FileText className="w-5 h-5" /> : 
-                                           resource.type === 'video' ? <Video className="w-5 h-5" /> : 
-                                           <ExternalLink className="w-5 h-5" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <h4 className="font-semibold text-zinc-900 dark:text-white truncate text-sm">{resource.title}</h4>
-                                          <p className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize mt-0.5">{resource.type}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <a 
-                                            href={resource.url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="p-2 hover:bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 transition-all"
-                                          >
-                                            <Download className="w-4 h-4" />
-                                          </a>
-                                          {isTeacherOrAdmin && (
-                                            <button 
-                                              onClick={() => setConfirmDeleteId(resource.id)}
-                                              className="p-2 hover:bg-red-50 rounded-md text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 hover:text-red-600 transition-all"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center py-20 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-dashed border-zinc-300">
-                              <BookOpen className="w-12 h-12 mb-4 text-zinc-300" />
-                              <p className="font-semibold text-sm">No resources available</p>
-                            </div>
-                          )}
                         </div>
-                      )}
-
-                      {activeTab === 'qa' && (
-                        <div className="space-y-8 animate-in fade-in duration-500">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Questions & Answers</h3>
-                          </div>
-
-                          {/* Ask Question Form */}
+                      ) : activeTab === 'qa' ? (
+                        <div className="p-6 md:p-12 space-y-8 animate-in fade-in duration-500">
                           <form onSubmit={handleAddQuestion} className="relative">
                             <textarea 
                               placeholder="Ask a question about this course..."
                               value={newQuestion}
                               onChange={e => setNewQuestion(e.target.value)}
-                              className="w-full p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none min-h-[100px] resize-none pr-16 text-sm"
+                              className="w-full p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none min-h-[100px] resize-none pr-16 text-sm"
                               required
                             />
-                            <button 
-                              type="submit"
-                              className="absolute bottom-3 right-3 p-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all shadow-sm"
-                            >
+                            <button type="submit" className="absolute bottom-3 right-3 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all">
                               <Send className="w-4 h-4" />
                             </button>
                           </form>
-
-                          {/* Questions List */}
-                          <div className="space-y-6">
+                          <div className="space-y-12">
                             {questions.length > 0 ? (
-                              questions.map((q, index) => (
-                                <div key={`${q.id}-${index}`} className="space-y-4">
-                                  <div className="flex gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-                                      <User className="w-5 h-5 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500" />
-                                    </div>
-                                    <div className="flex-1 p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-semibold text-zinc-900 dark:text-white text-sm">{q.studentName}</h4>
-                                        <span className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500">
-                                          {q.createdAt?.toDate ? q.createdAt.toDate().toLocaleDateString() : 'Just now'}
-                                        </span>
-                                      </div>
-                                      <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed">{q.content}</p>
-                                    </div>
-                                  </div>
-
-                                  {/* Answers */}
-                                  <div className="ml-14 space-y-4">
-                                    {answers[q.id]?.map((ans, aIndex) => (
-                                      <div key={`${ans.id}-${aIndex}`} className="flex gap-4">
-                                        <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
-                                          {ans.userRole === 'teacher' || ans.userRole === 'admin' ? (
-                                            <Trophy className="w-4 h-4 text-purple-600" />
-                                          ) : (
-                                            <User className="w-4 h-4 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500" />
-                                          )}
-                                        </div>
-                                        <div className="flex-1 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                                          <div className="flex items-center justify-between mb-1">
-                                            <div className="flex items-center gap-2">
-                                              <h5 className="font-semibold text-zinc-900 dark:text-white text-sm">{ans.userName}</h5>
-                                              {(ans.userRole === 'teacher' || ans.userRole === 'admin') && (
-                                                <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold uppercase rounded tracking-wider">Staff</span>
-                                              )}
-                                            </div>
-                                            <span className="text-xs text-zinc-500 dark:text-zinc-400 dark:text-zinc-500">
-                                              {ans.createdAt?.toDate ? ans.createdAt.toDate().toLocaleDateString() : 'Just now'}
-                                            </span>
-                                          </div>
-                                          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{ans.content}</p>
-                                        </div>
-                                      </div>
-                                    ))}
-
-                                    {/* Reply Form */}
-                                    <div className="flex gap-4">
-                                      <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-                                        <MessageCircle className="w-4 h-4 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500" />
-                                      </div>
-                                      <div className="flex-1 relative">
-                                        <input 
-                                          type="text" 
-                                          placeholder="Write a reply..."
-                                          value={newAnswer[q.id] || ''}
-                                          onChange={e => setNewAnswer(prev => ({ ...prev, [q.id]: e.target.value }))}
-                                          onKeyDown={e => e.key === 'Enter' && handleAddAnswer(q.id)}
-                                          className="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm pr-10"
-                                        />
-                                        <button 
-                                          onClick={() => handleAddAnswer(q.id)}
-                                          className="absolute right-1.5 top-1.5 p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
-                                        >
-                                          <Send className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
+                              questions.map(q => (
+                                <QuestionItem 
+                                  key={q.id} 
+                                  question={q} 
+                                  answers={answers[q.id] || []} 
+                                  newAnswer={newAnswer[q.id] || ''}
+                                  onAnswerChange={(val : string) => setNewAnswer(prev => ({ ...prev, [q.id]: val }))}
+                                  onAddAnswer={() => handleAddAnswer(q.id)}
+                                />
                               ))
                             ) : (
-                              <div className="flex flex-col items-center justify-center py-20 text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-dashed border-zinc-300">
-                                <MessageSquare className="w-12 h-12 mb-4 text-zinc-300" />
-                                <p className="font-semibold text-sm">No questions yet. Be the first to ask!</p>
+                              <div className="text-center py-20 text-zinc-500 dark:text-zinc-400">
+                                No questions yet. Be the first to ask!
                               </div>
                             )}
                           </div>
                         </div>
-                      )}
+                      ) : activeTab === 'students' ? (
+                        <div className="p-6 md:p-12 space-y-8 animate-in fade-in duration-500">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white">Enrolled Students</h3>
+                            <span className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-sm font-bold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800">
+                              {enrolledStudents.length} Students
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {enrolledStudents.map(student => (
+                              <div key={student.id} className="flex items-center justify-between p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm hover:border-purple-200 dark:hover:border-purple-900 transition-all group">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800 flex items-center justify-center font-bold text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-zinc-700">
+                                    {student.studentName?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-zinc-900 dark:text-white group-hover:text-purple-600 transition-colors uppercase tracking-tight">{student.studentName}</div>
+                                    <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
+                                      <Trophy className="w-3 h-3" />
+                                      <span>{student.progress || 0}% Progress</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                {isTeacherOrAdmin && (
+                                  <button 
+                                    onClick={() => handleDeleteEnrollment(student.id)}
+                                    className="p-2 opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 transition-all rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
-                    </>
-                  )}
-                </motion.div>
-              ) : selectedSection ? (
-                <motion.div
-                  key={`section-${selectedSection.id}`}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="p-6 md:p-12 space-y-8"
-                >
-                  <div className="space-y-4">
-                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold uppercase rounded-full tracking-wider">
-                      Section Overview
-                    </span>
-                    <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">{selectedSection.name}</h2>
-                    <p className="text-lg text-zinc-600 dark:text-zinc-300 max-w-3xl leading-relaxed">
-                      {selectedSection.overview || 'Master the core concepts of this module. Complete each lesson to progress through the course.'}
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-                    {selectedSection.mainLessons.map((lesson: any, idx: number) => (
-                      <button
-                        key={`active-section-lesson-${lesson.id}`}
-                        onClick={() => {
-                          setCurrentLesson(lesson);
-                          setSelectedSection(null);
-                        }}
-                        className="flex items-start gap-5 p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all text-left group"
-                      >
-                        <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white flex items-center justify-center text-lg font-bold group-hover:bg-purple-600 group-hover:text-white transition-all shrink-0">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1 min-w-0 pt-1">
-                          <h4 className="font-bold text-zinc-900 dark:text-white text-lg mb-1 truncate">{lesson.title}</h4>
-                          {lesson.shortDescription && (
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 line-clamp-2 leading-relaxed">{lesson.shortDescription}</p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              ) : isMobile ? (
-                <div key="mobile-sidebar" className="h-full">
-                  {renderSidebarContent()}
-                </div>
-              ) : (
-                <div key="empty-state" className="flex flex-col items-center justify-center h-[calc(100vh-64px)] text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center"
-                  >
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white dark:bg-zinc-900 shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center justify-center mb-6">
-                      <BookOpen className="w-10 h-10 text-purple-500 opacity-50" />
-                    </div>
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Ready to learn?</h3>
-                    <p className="text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 text-sm">Select a lesson from the contents to begin.</p>
-                  </motion.div>
                 </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         </div>
 
@@ -1689,10 +815,6 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
             </motion.div>
           )}
         </AnimatePresence>
-        </div>
-
-        {/* Sidebar - Course Content */}
-        {/* Removed - now handled by left sidebar */}
       </div>
     </div>
   );

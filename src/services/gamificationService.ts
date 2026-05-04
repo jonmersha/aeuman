@@ -7,7 +7,7 @@ import {
   Timestamp,
   FieldValue
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 
 export interface Badge {
   id: string;
@@ -33,16 +33,25 @@ export const BADGES = {
 
 export const awardPoints = async (userId: string, points: number) => {
   const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
-    points: increment(points)
-  });
+  try {
+    await updateDoc(userRef, {
+      points: increment(points)
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `users/${userId}`);
+  }
 };
 
 export const awardBadge = async (userId: string, badgeId: string) => {
   const userRef = doc(db, 'users', userId);
-  const userSnap = await getDoc(userRef);
+  let userSnap;
+  try {
+    userSnap = await getDoc(userRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `users/${userId}`);
+  }
   
-  if (!userSnap.exists()) return;
+  if (!userSnap?.exists()) return;
   
   const userData = userSnap.data();
   const existingBadges = userData.badges || [];
@@ -57,15 +66,24 @@ export const awardBadge = async (userId: string, badgeId: string) => {
     awardedAt: Timestamp.now()
   };
   
-  await updateDoc(userRef, {
-    badges: arrayUnion(newBadge)
-  });
+  try {
+    await updateDoc(userRef, {
+      badges: arrayUnion(newBadge)
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `users/${userId}`);
+  }
 };
 
 export const checkAchievements = async (userId: string, context: { type: 'lesson' | 'exam' | 'course', data: any }) => {
   const userRef = doc(db, 'users', userId);
-  const userSnap = await getDoc(userRef);
-  if (!userSnap.exists()) return;
+  let userSnap;
+  try {
+    userSnap = await getDoc(userRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `users/${userId}`);
+  }
+  if (!userSnap?.exists()) return;
   const userData = userSnap.data();
 
   if (context.type === 'lesson') {

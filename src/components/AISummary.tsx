@@ -10,7 +10,7 @@ interface AISummaryProps {
 }
 
 export const AISummary: React.FC<AISummaryProps> = ({ content, title }) => {
-  const [summary, setSummary] = useState<string | null>(null);
+  const [summaries, setSummaries] = useState<{ text: string, mode: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'short' | 'detailed' | 'bullet' | 'concepts'>('short');
 
@@ -26,10 +26,11 @@ export const AISummary: React.FC<AISummaryProps> = ({ content, title }) => {
         model: 'gemini-3-flash-preview',
         contents: prompt,
       });
-      setSummary(response.text || 'No summary generated.');
+      const newText = response.text || 'No summary generated.';
+      setSummaries(prev => [...prev, { text: newText, mode }]);
     } catch (error) {
       console.error('Error summarizing:', error);
-      setSummary('Failed to generate summary.');
+      setSummaries(prev => [...prev, { text: 'Failed to generate summary.', mode }]);
     } finally {
       setLoading(false);
     }
@@ -42,6 +43,25 @@ export const AISummary: React.FC<AISummaryProps> = ({ content, title }) => {
           <Sparkles className="w-5 h-5 text-emerald-600" />
           AI Summary
         </h3>
+      </div>
+      
+      <div className="space-y-4">
+        {summaries.map((s, idx) => (
+          <div key={idx} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded">
+                {s.mode}
+              </span>
+            </div>
+            <div className="prose prose-zinc prose-sm max-w-none text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+              <Markdown>{s.text}</Markdown>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between px-2">
+        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Select Mode</label>
         <select 
           value={mode} 
           onChange={e => setMode(e.target.value as any)}
@@ -53,22 +73,14 @@ export const AISummary: React.FC<AISummaryProps> = ({ content, title }) => {
           <option value="concepts">Key Concepts</option>
         </select>
       </div>
-      
-      {!summary && (
-        <button 
-          onClick={handleSummarize}
-          disabled={loading}
-          className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-purple-700 transition-all shadow-xl shadow-purple-100 flex items-center justify-center gap-2"
-        >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Generate Summary'}
-        </button>
-      )}
 
-      {summary && (
-        <div className="prose prose-zinc prose-sm max-w-none text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-          <Markdown>{summary}</Markdown>
-        </div>
-      )}
+      <button 
+        onClick={handleSummarize}
+        disabled={loading}
+        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-purple-700 transition-all shadow-xl shadow-purple-100 flex items-center justify-center gap-2"
+      >
+        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Generate Summary'}
+      </button>
     </div>
   );
 };
