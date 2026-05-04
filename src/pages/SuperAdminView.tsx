@@ -134,6 +134,24 @@ const SuperAdminView: React.FC = () => {
     }
   };
 
+  const handleAddSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const schoolId = editingItem?.id || doc(collection(db, 'schools')).id;
+      await setDoc(doc(db, 'schools', schoolId), {
+        ...newSchool,
+        status: editingItem?.status || 'active',
+        createdAt: editingItem?.createdAt || Timestamp.now(),
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+      setShowAddModal(false);
+      setEditingItem(null);
+      setNewSchool({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12' });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `schools/${editingItem?.id || 'new'}`);
+    }
+  };
+
   const [deleteConfirm, setDeleteConfirm] = useState<{ collection: string, id: string } | null>(null);
 
   const handleDelete = async (collectionName: string, id: string) => {
@@ -204,6 +222,19 @@ const SuperAdminView: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-3">
+          {activeSubTab === 'schools' && (
+            <button 
+              onClick={() => {
+                setEditingItem(null);
+                setNewSchool({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12' });
+                setShowAddModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-bold hover:bg-zinc-800 transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              Add New School
+            </button>
+          )}
           {activeSubTab === 'users' && (
             <button 
               onClick={() => openAddUserModal('super_admin')}
@@ -340,6 +371,7 @@ const SuperAdminView: React.FC = () => {
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">School Name</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Admin Email</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Managers</th>
                   <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
                 </tr>
               </thead>
@@ -364,6 +396,35 @@ const SuperAdminView: React.FC = () => {
                       )}>
                         {school.status || 'pending'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {users.filter(u => u.schoolId === school.id && u.role === 'admin').map(manager => (
+                          <span key={manager.id} className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-md font-medium">
+                            {manager.displayName || manager.email}
+                          </span>
+                        ))}
+                        {users.filter(u => u.schoolId === school.id && u.role === 'admin').length === 0 && (
+                          <span className="text-[10px] text-zinc-400">No managers</span>
+                        )}
+                        <button 
+                          onClick={() => {
+                            setNewUser({
+                              email: school.adminEmail || '',
+                              displayName: '',
+                              role: 'admin',
+                              schoolId: school.id,
+                              schoolIds: [],
+                              isIndependent: false
+                            });
+                            setEditingItem(null);
+                            setShowAddModal(true);
+                          }}
+                          className="text-[10px] text-purple-600 font-bold hover:underline"
+                        >
+                          + Add
+                        </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
@@ -656,91 +717,157 @@ const SuperAdminView: React.FC = () => {
       <Modal 
         isOpen={showAddModal} 
         onClose={() => { setShowAddModal(false); setEditingItem(null); }}
-        title={editingItem ? `Edit User` : `Add New User`}
+        title={editingItem ? `Edit ${activeSubTab === 'schools' ? 'School' : 'User'}` : `Add New ${activeSubTab === 'schools' ? 'School' : 'User'}`}
       >
-        <form onSubmit={handleAddUser} className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold mb-1">Display Name</label>
-            <input 
-              type="text" 
-              required 
-              value={newUser.displayName}
-              onChange={(e) => setNewUser({...newUser, displayName: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold mb-1">Email Address</label>
-            <input 
-              type="email" 
-              required 
-              value={newUser.email}
-              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+        {activeSubTab === 'schools' ? (
+          <form onSubmit={handleAddSchool} className="space-y-4">
             <div>
-              <label className="block text-sm font-bold mb-1">Role</label>
+              <label className="block text-sm font-bold mb-1">School Name</label>
+              <input 
+                type="text" 
+                required 
+                value={newSchool.name}
+                onChange={(e) => setNewSchool({...newSchool, name: e.target.value})}
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Address</label>
+              <input 
+                type="text" 
+                required 
+                value={newSchool.address}
+                onChange={(e) => setNewSchool({...newSchool, address: e.target.value})}
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-1">Admin Email</label>
+                <input 
+                  type="email" 
+                  required 
+                  value={newSchool.adminEmail}
+                  onChange={(e) => setNewSchool({...newSchool, adminEmail: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1">Contact Phone</label>
+                <input 
+                  type="tel" 
+                  value={newSchool.contactPhone}
+                  onChange={(e) => setNewSchool({...newSchool, contactPhone: e.target.value})}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Academic Structure</label>
               <select 
-                value={newUser.role}
-                onChange={(e) => setNewUser({...newUser, role: e.target.value as any})}
+                value={newSchool.academicStructure}
+                onChange={(e) => setNewSchool({...newSchool, academicStructure: e.target.value})}
                 className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
               >
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-                <option value="admin">School Manager (Admin)</option>
-                <option value="super_admin">Super Admin</option>
-                <option value="parent">Parent</option>
-                <option value="pending">Pending Approval</option>
+                <option value="K-12">K-12 (General)</option>
+                <option value="Primary">Primary School</option>
+                <option value="Secondary">Secondary School</option>
+                <option value="Higher">Higher Education / College</option>
+                <option value="Professional">Professional Center</option>
               </select>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm font-bold text-zinc-500">Cancel</button>
+              <button type="submit" className="px-6 py-2 bg-zinc-900 text-white rounded-xl font-bold shadow-lg">
+                {editingItem ? 'Save Changes' : 'Create School'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleAddUser} className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold mb-1">Display Name</label>
+              <input 
+                type="text" 
+                required 
+                value={newUser.displayName}
+                onChange={(e) => setNewUser({...newUser, displayName: e.target.value})}
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+              />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1">Status</label>
+              <label className="block text-sm font-bold mb-1">Email Address</label>
+              <input 
+                type="email" 
+                required 
+                value={newUser.email}
+                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-1">Role</label>
+                <select 
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({...newUser, role: e.target.value as any})}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">School Manager (Admin)</option>
+                  <option value="super_admin">Super Admin</option>
+                  <option value="parent">Parent</option>
+                  <option value="pending">Pending Approval</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1">Status</label>
+                <select 
+                  value={newUser.role === 'pending' ? 'pending' : (editingItem?.status || 'active')}
+                  onChange={(e) => {
+                    // Simplified status selection if needed, but let's just use the current logic
+                  }}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent opacity-50 cursor-not-allowed"
+                  disabled
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Associate School</label>
               <select 
-                value={newUser.role === 'pending' ? 'pending' : (editingItem?.status || 'active')}
-                onChange={(e) => {
-                  // Simplified status selection if needed, but let's just use the current logic
-                }}
-                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent opacity-50 cursor-not-allowed"
-                disabled
+                value={newUser.schoolId}
+                onChange={(e) => setNewUser({...newUser, schoolId: e.target.value})}
+                className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
               >
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="suspended">Suspended</option>
+                <option value="">No school (Independent)</option>
+                {schools.map(school => (
+                  <option key={school.id} value={school.id}>{school.name}</option>
+                ))}
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-bold mb-1">Associate School</label>
-            <select 
-              value={newUser.schoolId}
-              onChange={(e) => setNewUser({...newUser, schoolId: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
-            >
-              <option value="">No school (Independent)</option>
-              {schools.map(school => (
-                <option key={school.id} value={school.id}>{school.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2 py-2">
-            <input 
-              type="checkbox" 
-              id="isIndependent"
-              checked={newUser.isIndependent}
-              onChange={(e) => setNewUser({...newUser, isIndependent: e.target.checked})}
-              className="rounded border-zinc-300 text-purple-600 focus:ring-purple-600"
-            />
-            <label htmlFor="isIndependent" className="text-sm font-medium">Independent Learner/Provider</label>
-          </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm font-bold text-zinc-500">Cancel</button>
-            <button type="submit" className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold shadow-lg">
-              {editingItem ? 'Save Changes' : 'Create User'}
-            </button>
-          </div>
-        </form>
+            <div className="flex items-center gap-2 py-2">
+              <input 
+                type="checkbox" 
+                id="isIndependent"
+                checked={newUser.isIndependent}
+                onChange={(e) => setNewUser({...newUser, isIndependent: e.target.checked})}
+                className="rounded border-zinc-300 text-purple-600 focus:ring-purple-600"
+              />
+              <label htmlFor="isIndependent" className="text-sm font-medium">Independent Learner/Provider</label>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm font-bold text-zinc-500">Cancel</button>
+              <button type="submit" className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold shadow-lg">
+                {editingItem ? 'Save Changes' : 'Create User'}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       <Modal

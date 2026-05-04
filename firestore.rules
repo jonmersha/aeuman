@@ -59,10 +59,13 @@ service cloud.firestore {
     }
 
     function isSchoolAdmin(schoolId) {
+      let userData = getUserData();
       return isSuperAdmin() || (
-        isAuthenticated() && 
-        exists(/databases/$(database)/documents/schools/$(schoolId)) && 
-        get(/databases/$(database)/documents/schools/$(schoolId)).data.get('managerId', '') == request.auth.uid
+        isAuthenticated() && (
+          (exists(/databases/$(database)/documents/schools/$(schoolId)) && 
+           get(/databases/$(database)/documents/schools/$(schoolId)).data.get('managerId', '') == request.auth.uid) ||
+          (userData.get('role', '') == 'admin' && userData.get('schoolId', '') == schoolId)
+        )
       );
     }
 

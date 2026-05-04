@@ -13,6 +13,7 @@ interface SchoolProfileViewProps {
 export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, onBack }) => {
   const { profile } = useAuth();
   const [school, setSchool] = useState<any>(null);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinStatus, setJoinStatus] = useState<'none' | 'pending' | 'member'>('none');
   const [requestingRole, setRequestingRole] = useState<string | null>(null);
@@ -26,6 +27,11 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
         if (docSnap.exists()) {
           setSchool({ id: docSnap.id, ...docSnap.data() });
         }
+
+        // Fetch courses for this school
+        const coursesQ = query(collection(db, 'courses'), where('schoolId', '==', schoolId));
+        const coursesSnap = await getDocs(coursesQ);
+        setCourses(coursesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
         if (profile && profile.uid) {
           if (profile.schoolId === schoolId || (profile.schoolIds && profile.schoolIds.includes(schoolId))) {
@@ -192,6 +198,25 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
                   )}
                 </div>
               </div>
+
+              {courses.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Our Courses</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {courses.map(course => (
+                      <div key={course.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl flex items-center gap-4">
+                        <div className="w-16 h-12 bg-zinc-200 dark:bg-zinc-700 rounded-lg overflow-hidden shrink-0">
+                          <img src={`https://picsum.photos/seed/${course.id}/100/100`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold truncate text-sm dark:text-white">{course.title}</h4>
+                          <p className="text-[10px] text-zinc-500 font-medium">By {course.teacherName}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">

@@ -122,6 +122,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ onEditCourse
         ...newCourse,
         teacherId: profile.uid,
         teacherName: profile.displayName,
+        schoolId: profile.schoolId || null,
         createdAt: editingItem?.createdAt || Timestamp.now()
       }, { merge: true });
       setShowCreate(false);
@@ -141,6 +142,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({ onEditCourse
         ...newExam,
         teacherId: profile.uid,
         teacherName: profile.displayName,
+        schoolId: profile.schoolId || null,
         questions: editingItem?.questions || [],
         createdAt: editingItem?.createdAt || Timestamp.now()
       }, { merge: true });

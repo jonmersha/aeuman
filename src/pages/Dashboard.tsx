@@ -17,6 +17,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
   const [recentResults, setRecentResults] = useState<any[]>([]);
   const [stats, setStats] = useState({ enrolled: 0, completed: 0, avgProgress: 0, points: 0 });
   const [recentCourses, setRecentCourses] = useState<any[]>([]);
+  const [schoolCourses, setSchoolCourses] = useState<any[]>([]);
   const [upcomingExams, setUpcomingExams] = useState<any[]>([]);
   const [schoolCode, setSchoolCode] = useState('');
 
@@ -42,6 +43,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
     const enrollmentsQ = query(collectionGroup(db, 'enrollments'), where('studentId', '==', profile.uid));
     const unsubEnrollments = onSnapshot(enrollmentsQ, async (snapshot) => {
       const allDocs = snapshot.docs.map(doc => doc.data());
+      const enrolledCourseIds = allDocs.filter(d => d.courseId).map(d => d.courseId);
       // Include pending in stats but maybe differentiate later if needed
       const docs = allDocs.filter(d => d.status === 'approved' || d.status === 'pending');
       const enrolled = docs.filter(d => d.courseId).length;
@@ -61,6 +63,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
       const validCourses = courses.filter((c: any) => c && c.title);
       const uniqueCourses = Array.from(new Map(validCourses.map((c: any) => [c.id, c])).values());
       setRecentCourses(uniqueCourses);
+
+      // Fetch school courses (not yet enrolled)
+      if (profile.schoolId) {
+        const schoolCoursesQ = query(collection(db, 'courses'), where('schoolId', '==', profile.schoolId));
+        const schoolSnapshot = await getDocs(schoolCoursesQ);
+        const sCourses = schoolSnapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter((c: any) => !enrolledCourseIds.includes(c.id))
+          .slice(0, 3);
+        setSchoolCourses(sCourses);
+      } else {
+        setSchoolCourses([]);
+      }
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'enrollments'));
 
     // Listener for exam results
@@ -194,7 +209,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
                   "p-4 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all cursor-pointer"
                 )}
               >
-                <div className="w-16 h-12 bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800 rounded-lg overflow-hidden shrink-0 relative">
+                <div className="w-16 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden shrink-0 relative">
                   <img src={`https://picsum.photos/seed/${course.id}/100/100`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   {course.enrollmentStatus === 'pending' && (
                     <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
@@ -209,7 +224,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
                       <span className="text-[8px] font-black uppercase bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">Pending</span>
                     )}
                   </div>
-                  <div className="w-full bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800 h-1 rounded-full mt-2 overflow-hidden">
+                  <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1 rounded-full mt-2 overflow-hidden">
                     <div className="bg-purple-500 h-full" style={{ width: `${course.progress}%` }} />
                   </div>
                 </div>
@@ -220,6 +235,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
             )}
           </div>
         </section>
+
+        {schoolCourses.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold dark:text-white">Available in your School</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {schoolCourses.map(course => (
+                <div 
+                  key={course.id} 
+                  onClick={() => onSelectCourse(course.id)}
+                  className="p-4 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all cursor-pointer"
+                >
+                  <div className="w-16 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden shrink-0">
+                    <img src={`https://picsum.photos/seed/${course.id}/100/100`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold truncate dark:text-white">{course.title}</h4>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">By {course.teacherName}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="space-y-4">
           <h2 className="text-xl font-bold dark:text-white">Recent Exam Results</h2>
