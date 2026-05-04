@@ -145,9 +145,6 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
       if (!sectionMap[sm.name]) sectionMap[sm.name] = [];
     });
 
-    // Ensure General is always included
-    if (!sectionMap['General']) sectionMap['General'] = [];
-
     return Object.entries(sectionMap).map(([name, items]) => {
       const metadata = sectionMetadata.find(sm => sm.name === name);
       return {

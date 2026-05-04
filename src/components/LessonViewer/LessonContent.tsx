@@ -11,6 +11,7 @@ interface LessonContentProps {
   completedLessons: string[];
   isSpeaking: boolean;
   onTTS: () => void;
+  audioUrl?: string | null;
   onToggleComplete: () => void;
   onSelectLesson: (lesson: any) => void;
   onOpenExam: (examId: string) => void;
@@ -26,6 +27,7 @@ export const LessonContent: React.FC<LessonContentProps> = ({
   completedLessons,
   isSpeaking,
   onTTS,
+  audioUrl,
   onToggleComplete,
   onSelectLesson,
   onOpenExam,
@@ -50,14 +52,18 @@ export const LessonContent: React.FC<LessonContentProps> = ({
         </div>
         
         <div className="flex items-center gap-3 shrink-0">
-          <button 
-            onClick={onTTS}
-            disabled={isSpeaking}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:bg-zinc-700 transition-all disabled:opacity-50 font-semibold text-sm"
-          >
-            {isSpeaking ? <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" /> : <Volume2 className="w-4 h-4" />}
-            Listen
-          </button>
+          {audioUrl ? (
+            <audio controls src={audioUrl} autoPlay className="h-10 w-48 md:w-64" />
+          ) : (
+            <button 
+              onClick={onTTS}
+              disabled={isSpeaking}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:bg-zinc-700 transition-all disabled:opacity-50 font-semibold text-sm"
+            >
+              {isSpeaking ? <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" /> : <Volume2 className="w-4 h-4" />}
+              Listen
+            </button>
+          )}
           <button 
             onClick={onToggleComplete}
             className={cn(

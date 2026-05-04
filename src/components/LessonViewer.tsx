@@ -198,6 +198,10 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
   }, [courseId, profile, course]);
 
   useEffect(() => {
+    setAudioUrl(null);
+  }, [currentLesson?.id]);
+
+  useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -294,7 +298,6 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
 
     // Get all unique section names from lessons and metadata
     const allSectionNames = Array.from(new Set([
-      'General',
       ...Object.keys(grouped),
       ...sectionMetadata.map(s => s.name)
     ]));
@@ -643,6 +646,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ courseId, onBack }) 
                                 completedLessons={completedLessons}
                                 isSpeaking={isSpeaking}
                                 onTTS={handleTTS}
+                                audioUrl={audioUrl}
                                 onToggleComplete={toggleComplete}
                                 onSelectLesson={setCurrentLesson}
                                 onOpenExam={setSelectedExam}
