@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, ChevronRight, CheckCircle2, Video, FileText } from 'lucide-react';
+import { BookOpen, ChevronRight, CheckCircle2, Video, FileText, RefreshCcw } from 'lucide-react';
 import { Section } from './types';
 
 interface SidebarProps {
@@ -143,8 +143,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 )}>{main.title}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <div className="flex items-center gap-1">
-                                    {main.type === 'video' ? <Video className="w-3 h-3 text-zinc-400 dark:text-zinc-500" /> : <FileText className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />}
-                                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize">{main.type}</span>
+                                    {main.type === 'video' ? (
+                                      <Video className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />
+                                    ) : main.type === 'flashcards' ? (
+                                      <RefreshCcw className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <FileText className="w-3 h-3 text-zinc-400 dark:text-zinc-500" />
+                                    )}
+                                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 dark:text-zinc-500 capitalize">{main.type === 'flashcards' ? 'Cards' : main.type}</span>
                                   </div>
                                   {hasSubs && (
                                     <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">{main.subs.length} sub-lessons</span>

@@ -4,6 +4,7 @@ import { Volume2, CheckCircle2, BookOpen } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AISummary } from '../AISummary';
 import { RelatedCourses } from '../RelatedCourses';
+import { FlashcardViewer } from '../FlashcardViewer';
 
 interface LessonContentProps {
   currentLesson: any;
@@ -80,7 +81,11 @@ export const LessonContent: React.FC<LessonContentProps> = ({
             </p>
           )}
           
-          <div className="prose prose-zinc dark:prose-invert max-w-none shadow-sm p-4 rounded-xl border border-zinc-100 dark:border-zinc-800" dangerouslySetInnerHTML={{ __html: currentLesson.content || '<p>No detailed content provided for this lesson.</p>' }} />
+          {currentLesson.type === 'flashcards' ? (
+            <FlashcardViewer cards={currentLesson.flashcards || []} />
+          ) : (
+            <div className="prose prose-zinc dark:prose-invert max-w-none shadow-sm p-4 rounded-xl border border-zinc-100 dark:border-zinc-800" dangerouslySetInnerHTML={{ __html: currentLesson.content || '<p>No detailed content provided for this lesson.</p>' }} />
+          )}
 
           {/* Sub-lessons Grid */}
           {lessons.some(l => l.parentId === currentLesson.id) && (

@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { QuizEditor } from './QuizEditor';
 
 import { RichTextEditor } from './RichTextEditor';
+import { FlashcardEditor } from './FlashcardEditor';
 
 export interface ResourceBlock {
   title: string;
@@ -946,6 +947,30 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                     placeholder="Lesson Title"
                   />
 
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Lesson Type</label>
+                    <div className="flex gap-2 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-fit">
+                      <button 
+                        onClick={() => setEditingLesson({...editingLesson, type: 'text'})}
+                        className={cn(
+                          "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                          editingLesson.type !== 'flashcards' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
+                        )}
+                      >
+                        Long-form Text
+                      </button>
+                      <button 
+                        onClick={() => setEditingLesson({...editingLesson, type: 'flashcards'})}
+                        className={cn(
+                          "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                          editingLesson.type === 'flashcards' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
+                        )}
+                      >
+                        Flashcards
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Visibility</label>
                     <button
@@ -959,14 +984,22 @@ export const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onBack }) 
                       <div className={cn("w-4 h-4 rounded-full border-2", editingLesson.isPublic ? "bg-emerald-500 border-emerald-500" : "border-zinc-300")} />
                     </button>
                   </div>
+
       <div className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Lesson Content</label>
-          <RichTextEditor 
-            content={editingLesson.content || ''}
-            onChange={(content) => setEditingLesson({...editingLesson, content})}
+        {editingLesson.type === 'flashcards' ? (
+          <FlashcardEditor 
+            cards={editingLesson.flashcards || []}
+            onChange={(cards) => setEditingLesson({...editingLesson, flashcards: cards})}
           />
-        </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Lesson Content</label>
+            <RichTextEditor 
+              content={editingLesson.content || ''}
+              onChange={(content) => setEditingLesson({...editingLesson, content})}
+            />
+          </div>
+        )}
 
         <ResourcesEditor 
           resources={editingLesson.resources || []}
