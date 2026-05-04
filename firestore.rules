@@ -59,12 +59,10 @@ service cloud.firestore {
     }
 
     function isSchoolAdmin(schoolId) {
-      let userData = getUserData();
       return isSuperAdmin() || (
-        userData.get('role', '') == 'admin' && (
-          userData.get('schoolId', '') == schoolId || 
-          (userData.get('schoolIds', []) is list && schoolId in userData.get('schoolIds', []))
-        )
+        isAuthenticated() && 
+        exists(/databases/$(database)/documents/schools/$(schoolId)) && 
+        get(/databases/$(database)/documents/schools/$(schoolId)).data.get('managerId', '') == request.auth.uid
       );
     }
 
@@ -99,7 +97,8 @@ service cloud.firestore {
 
     function isTeacherInSchool(schoolId) {
       let userData = getUserData();
-      return userData.role == 'teacher' && (userData.schoolId == schoolId || (userData.schoolIds != null && schoolId in userData.schoolIds));
+      // Teachers can view and participate, but not manage the school itself
+      return userData.get('role', '') == 'teacher' && userData.get('schoolId', '') == schoolId;
     }
 
     function hasOnlyAllowedFields(fields) {

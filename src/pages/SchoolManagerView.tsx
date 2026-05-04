@@ -351,6 +351,24 @@ const SchoolManagerView: React.FC = () => {
   };
 
   const isSuperAdmin = profile?.role === 'super_admin';
+  const currentSchool = managedSchools.find(s => s.id === profile?.schoolId);
+  const isOwner = currentSchool?.managerId === profile?.uid || isSuperAdmin;
+
+  if (!isSuperAdmin && !managedSchools.length) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+        <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center">
+          <SchoolIcon className="w-10 h-10 text-zinc-400" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold">Management Restricted</h2>
+          <p className="text-zinc-500 mt-2 max-w-sm mx-auto">
+            This area is for school owners and administrators. Regular members can view their courses in the <strong>Dashboard</strong>.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if ((!profile?.schoolId && !isSuperAdmin) || (showCreateSchool && !isSuperAdmin)) {
     return (
@@ -543,39 +561,43 @@ const SchoolManagerView: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            {activeSubTab === 'users' ? (
+            {isOwner && (
               <>
-                <button 
-                  onClick={() => openAddUserModal('teacher')}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Add Teacher
-                </button>
-                <button 
-                  onClick={() => openAddUserModal('student')}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-md"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Add Student
-                </button>
-                <button 
-                  onClick={() => { setBulkUploadRole('student'); setBulkUploadContext(null); setShowBulkUploadModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-md"
-                >
-                  <Upload className="w-4 h-4" />
-                  Bulk Upload
-                </button>
+                {activeSubTab === 'users' ? (
+                  <>
+                    <button 
+                      onClick={() => openAddUserModal('teacher')}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Add Teacher
+                    </button>
+                    <button 
+                      onClick={() => openAddUserModal('student')}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-md"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Add Student
+                    </button>
+                    <button 
+                      onClick={() => { setBulkUploadRole('student'); setBulkUploadContext(null); setShowBulkUploadModal(true); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-md"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Bulk Upload
+                    </button>
+                  </>
+                ) : activeSubTab === 'classes' ? (
+                  <button 
+                    onClick={() => { setEditingItem(null); setAddModalType('class'); }}
+                    className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-lg"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Class
+                  </button>
+                ) : null}
               </>
-            ) : activeSubTab === 'classes' ? (
-              <button 
-                onClick={() => { setEditingItem(null); setAddModalType('class'); }}
-                className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-lg"
-              >
-                <Plus className="w-5 h-5" />
-                Add Class
-              </button>
-            ) : null}
+            )}
           </div>
         </header>
 
@@ -696,10 +718,12 @@ const SchoolManagerView: React.FC = () => {
                         {user.role === 'teacher' ? user.specialization : classes.find(c => c.id === user.classId)?.name || '-'}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button onClick={() => startEdit(user)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"><Settings className="w-4 h-4" /></button>
-                          <button onClick={() => setDeleteConfirm({ collection: 'users', id: user.id })} className="text-zinc-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                        </div>
+                        {isOwner && (
+                          <div className="flex gap-2">
+                            <button onClick={() => startEdit(user)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"><Settings className="w-4 h-4" /></button>
+                            <button onClick={() => setDeleteConfirm({ collection: 'users', id: user.id })} className="text-zinc-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -712,24 +736,26 @@ const SchoolManagerView: React.FC = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Courses</h2>
-              <button 
-                onClick={async () => {
-                  const newCourseRef = await addDoc(collection(db, 'courses'), {
-                    title: 'New Course',
-                    description: 'Course description...',
-                    teacherId: profile?.uid,
-                    schoolId: profile?.schoolId,
-                    createdAt: new Date().toISOString(),
-                    published: false
-                  });
-                  setSelectedCourseId(newCourseRef.id);
-                  setView('edit-course');
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-md"
-              >
-                <Plus className="w-4 h-4" />
-                Create Course
-              </button>
+              {isOwner && (
+                <button 
+                  onClick={async () => {
+                    const newCourseRef = await addDoc(collection(db, 'courses'), {
+                      title: 'New Course',
+                      description: 'Course description...',
+                      teacherId: profile?.uid,
+                      schoolId: profile?.schoolId,
+                      createdAt: new Date().toISOString(),
+                      published: false
+                    });
+                    setSelectedCourseId(newCourseRef.id);
+                    setView('edit-course');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Course
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map(course => (
@@ -741,18 +767,20 @@ const SchoolManagerView: React.FC = () => {
                   <p className="text-zinc-500 dark:text-zinc-400 text-sm line-clamp-2">{course.description}</p>
                   <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between">
                     <span className="text-xs font-bold text-zinc-400">By {course.teacherName || 'Unknown'}</span>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setSelectedCourseId(course.id);
-                          setView('edit-course');
-                        }}
-                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900"
-                      >
-                        <Settings className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => setDeleteConfirm({ collection: 'courses', id: course.id })} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
-                    </div>
+                    {isOwner && (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedCourseId(course.id);
+                            setView('edit-course');
+                          }}
+                          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setDeleteConfirm({ collection: 'courses', id: course.id })} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -764,25 +792,27 @@ const SchoolManagerView: React.FC = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Exams</h2>
-              <button 
-                onClick={async () => {
-                  const newExamRef = await addDoc(collection(db, 'exams'), {
-                    title: 'New Exam',
-                    description: 'Exam description...',
-                    teacherId: profile?.uid,
-                    schoolId: profile?.schoolId,
-                    createdAt: new Date().toISOString(),
-                    published: false,
-                    questions: []
-                  });
-                  setSelectedExamId(newExamRef.id);
-                  setView('edit-exam');
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-md"
-              >
-                <Plus className="w-4 h-4" />
-                Create Exam
-              </button>
+              {isOwner && (
+                <button 
+                  onClick={async () => {
+                    const newExamRef = await addDoc(collection(db, 'exams'), {
+                      title: 'New Exam',
+                      description: 'Exam description...',
+                      teacherId: profile?.uid,
+                      schoolId: profile?.schoolId,
+                      createdAt: new Date().toISOString(),
+                      published: false,
+                      questions: []
+                    });
+                    setSelectedExamId(newExamRef.id);
+                    setView('edit-exam');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Exam
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {exams.map(exam => (
@@ -794,18 +824,20 @@ const SchoolManagerView: React.FC = () => {
                   <p className="text-zinc-500 dark:text-zinc-400 text-sm line-clamp-2">{exam.description}</p>
                   <div className="mt-4 pt-4 border-t border-black/5 flex items-center justify-between">
                     <span className="text-xs font-bold text-zinc-400">{exam.questions?.length || 0} Questions</span>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setSelectedExamId(exam.id);
-                          setView('edit-exam');
-                        }}
-                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900"
-                      >
-                        <Settings className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => setDeleteConfirm({ collection: 'exams', id: exam.id })} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
-                    </div>
+                    {isOwner && (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedExamId(exam.id);
+                            setView('edit-exam');
+                          }}
+                          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-900"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setDeleteConfirm({ collection: 'exams', id: exam.id })} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -912,7 +944,9 @@ const SchoolManagerView: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                             <button onClick={() => setDeleteConfirm({ collection: 'enrollments', id: enrollment.id })} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
+                             {isOwner && (
+                               <button onClick={() => setDeleteConfirm({ collection: 'enrollments', id: enrollment.id })} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
+                             )}
                           </td>
                         </tr>
                       );
