@@ -144,8 +144,12 @@ export const SchoolDirectoryView: React.FC<SchoolDirectoryViewProps> = ({ onSele
     <div className="max-w-7xl mx-auto space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Schools Directory</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1">Discover and join educational institutions</p>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            {showOnlyJoined ? 'My Schools' : 'Schools Directory'}
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-1">
+            {showOnlyJoined ? 'Manage your joined schools and active learning environments' : 'Discover and join educational institutions'}
+          </p>
         </div>
         <div className="relative w-full md:w-96">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -167,13 +171,21 @@ export const SchoolDirectoryView: React.FC<SchoolDirectoryViewProps> = ({ onSele
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white">No schools found</h3>
           <p className="text-zinc-500">Try adjusting your search query.</p>
         </div>
+      ) : showOnlyJoined && mySchools.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800">
+          <SchoolIcon className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-white">You haven't joined any schools yet</h3>
+          <p className="text-zinc-500">Go to the Schools directory to discover and join schools.</p>
+        </div>
       ) : (
         <div className="space-y-12">
           {mySchools.length > 0 && (
             <div>
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 mb-6">
-                <Star className="w-6 h-6 text-emerald-500" /> My Schools
-              </h2>
+              {!showOnlyJoined && (
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 mb-6">
+                  <Star className="w-6 h-6 text-emerald-500" /> My Schools
+                </h2>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {mySchools.map(school => renderSchoolCard(school, true))}
               </div>
