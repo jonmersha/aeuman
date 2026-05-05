@@ -224,6 +224,13 @@ service cloud.firestore {
              (!('isPublic' in data) || data.isPublic is bool);
     }
 
+    function isValidJoinRequest(data) {
+      return data.schoolId is string && data.userId is string &&
+             data.userEmail is string && data.userName is string &&
+             data.role in ['student', 'teacher', 'parent'] &&
+             data.status in ['pending', 'approved', 'rejected'];
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -394,6 +401,14 @@ service cloud.firestore {
       allow read: if isParticipant(resource.data.conversationId) || isSuperAdmin();
       allow create: if isAuthenticated() && (isParticipant(request.resource.data.conversationId) || isSuperAdmin()) && request.resource.data.senderId == request.auth.uid;
       allow delete: if isSuperAdmin();
+    }
+
+    match /joinRequests/{requestId} {
+      allow read: if isSuperAdmin() || isSchoolAdmin(resource.data.schoolId) || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow list: if isSuperAdmin() || isAuthenticated();
+      allow create: if isAuthenticated() && isValidJoinRequest(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update: if isSuperAdmin() || isSchoolAdmin(resource.data.schoolId) || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isSuperAdmin() || isSchoolAdmin(resource.data.schoolId) || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
     match /_connection_test_/{docId} {
