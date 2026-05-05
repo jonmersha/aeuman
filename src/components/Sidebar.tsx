@@ -7,7 +7,8 @@ import {
   GraduationCap, 
   Users, 
   MessageSquare,
-  LogOut
+  LogOut,
+  School as SchoolIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
@@ -24,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    ...(profile?.schoolId ? [{ id: 'my-school', label: 'My School', icon: SchoolIcon }] : []),
     { id: 'courses', label: 'Courses', icon: BookOpen },
     { id: 'marketplace', label: 'Marketplace', icon: Search },
     ...(isSuperAdmin ? [{ id: 'super-admin', label: 'Super Admin Panel', icon: Settings }] : []),

@@ -210,6 +210,11 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
                   </div>
                 )}
               </div>
+              {school.description && (
+                <p className="mt-4 text-zinc-600 dark:text-zinc-300 max-w-2xl leading-relaxed">
+                  {school.description}
+                </p>
+              )}
             </div>
             
             {profile && (

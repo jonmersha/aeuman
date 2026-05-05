@@ -35,11 +35,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     ...(profile?.role !== 'student' ? [{ id: 'schools', label: 'Schools', icon: SchoolIcon }] : []),
+    ...(profile?.schoolId ? [{ id: 'my-school', label: 'My School', icon: SchoolIcon }] : []),
     { id: 'courses', label: 'My Learning', icon: BookOpen },
     { id: 'marketplace', label: 'Discover', icon: Search },
     { id: 'messages', label: 'Messaging', icon: MessageSquare },
     ...(isSuperAdmin ? [{ id: 'super-admin', label: 'Super Admin', icon: Settings }] : []),
-    ...(profile?.role === 'admin' ? [{ id: 'school', label: 'School Manager', icon: Settings }] : []),
+    ...(profile?.role === 'admin' ? [{ id: 'school', label: 'School Mgt', icon: Settings }] : []),
     ...(profile?.role === 'teacher' || isSuperAdmin ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
     ...(profile?.role === 'parent' ? [{ id: 'parent', label: 'Parent', icon: Users }] : []),
   ];
