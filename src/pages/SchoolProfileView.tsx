@@ -14,7 +14,7 @@ interface SchoolProfileViewProps {
 }
 
 export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, onBack, onSelectCourse, onManageSchool }) => {
-  const { profile } = useAuth();
+  const { profile, currentRole } = useAuth();
   const [school, setSchool] = useState<any>(null);
   const [courses, setCourses] = useState<any[]>([]);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
@@ -25,8 +25,8 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
   const [isEnrolling, setIsEnrolling] = useState<string | null>(null);
   const [studentsCount, setStudentsCount] = useState<number>(0);
 
-  const isManager = profile?.role === 'super_admin' || 
-                   (profile?.role === 'admin' && profile?.schoolId === schoolId) || 
+  const isManager = currentRole === 'super_admin' || 
+                   (currentRole === 'admin' && profile?.schoolId === schoolId) || 
                    school?.managerId === profile?.uid;
 
   useEffect(() => {

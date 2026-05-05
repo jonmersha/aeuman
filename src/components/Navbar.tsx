@@ -26,11 +26,11 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { profile, logout, switchRole } = useAuth();
+  const { profile, currentRole, logout, switchRole } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const isSuperAdmin = currentRole === 'super_admin';
   
   const menuItems = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
@@ -40,9 +40,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'marketplace', label: 'Discover', icon: Search },
     { id: 'messages', label: 'Messaging', icon: MessageSquare },
     ...(isSuperAdmin ? [{ id: 'super-admin', label: 'Super Admin', icon: Settings }] : []),
-    ...(profile?.role === 'admin' ? [{ id: 'school', label: 'School Mgt', icon: Settings }] : []),
-    ...(profile?.role === 'teacher' || isSuperAdmin ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
-    ...(profile?.role === 'parent' ? [{ id: 'parent', label: 'Parent', icon: Users }] : []),
+    ...(currentRole === 'admin' ? [{ id: 'school', label: 'School Mgt', icon: Settings }] : []),
+    ...(currentRole === 'teacher' || isSuperAdmin ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
+    ...(currentRole === 'parent' ? [{ id: 'parent', label: 'Parent', icon: Users }] : []),
   ];
 
   return (

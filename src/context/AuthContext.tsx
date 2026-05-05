@@ -18,6 +18,7 @@ export interface UserProfile {
   role: UserRole;
   schoolId?: string;
   schoolIds?: string[];
+  schoolRoles?: { [schoolId: string]: UserRole };
   studentIds?: string[];
   parentIds?: string[];
   isIndependent?: boolean;
@@ -35,6 +36,7 @@ export interface UserProfile {
 interface AuthContextType {
   user: FirebaseUser | null;
   profile: UserProfile | null;
+  currentRole: UserRole | null;
   loading: boolean;
   signIn: () => Promise<void>;
   logout: () => Promise<void>;
@@ -48,6 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const currentRole = profile?.schoolId && profile?.schoolRoles?.[profile.schoolId]
+    ? profile.schoolRoles[profile.schoolId]
+    : profile?.role || null;
 
   useEffect(() => {
     let unsubscribeProfile: () => void = () => {};
@@ -126,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, logout, switchRole, joinSchool }}>
+    <AuthContext.Provider value={{ user, profile, currentRole, loading, signIn, logout, switchRole, joinSchool }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,7 +11,7 @@ import { CourseEditorPage } from './CourseEditorPage';
 import { ExamEditor } from '../components/ExamEditor';
 
 const SchoolManagerView: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, currentRole } = useAuth();
   const [classes, setClasses] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [enrollments, setEnrollments] = useState<any[]>([]);
@@ -379,13 +379,18 @@ const SchoolManagerView: React.FC = () => {
       }
 
       // 3. Update the user's profile
-      await setDoc(userRef, {
-        schoolId: request.schoolId, // Set as their active school
+      const updates: any = {
         schoolIds: schoolIds,
-        role: request.role, // Update to the requested role (student/teacher/parent)
-        status: 'active',
+        [`schoolRoles.${request.schoolId}`]: request.role,
         updatedAt: Timestamp.now()
-      }, { merge: true });
+      };
+      
+      if (!userSnap.exists() || !userSnap.data().schoolId) {
+        updates.schoolId = request.schoolId;
+        updates.role = request.role; // Set global role if it's their first school
+      }
+      
+      await setDoc(userRef, updates, { merge: true });
 
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `joinRequests/${request.id}`);
@@ -403,7 +408,7 @@ const SchoolManagerView: React.FC = () => {
     }
   };
 
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const isSuperAdmin = currentRole === 'super_admin';
   const currentSchool = managedSchools.find(s => s.id === profile?.schoolId);
   const isOwner = currentSchool?.managerId === profile?.uid || isSuperAdmin;
 

@@ -16,13 +16,13 @@ import { LessonViewer } from './LessonViewer';
 import { ExamViewer } from './ExamViewer';
 
 export const MainApp: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, currentRole } = useAuth();
   
-  const getDefaultTab = (role?: string) => {
+  const getDefaultTab = (role?: string | null) => {
     return 'dashboard';
   };
 
-  const [activeTab, setActiveTab] = useState(getDefaultTab(profile?.role));
+  const [activeTab, setActiveTab] = useState(getDefaultTab(currentRole));
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [viewingSchoolId, setViewingSchoolId] = useState<string | null>(null);
@@ -31,14 +31,14 @@ export const MainApp: React.FC = () => {
     if (!profile) return;
     
     // Reset activeTab if the current tab is not appropriate for the new role
-    if (activeTab === 'super-admin' && profile.role !== 'super_admin') setActiveTab(getDefaultTab(profile.role));
-    if (activeTab === 'school' && profile.role !== 'admin') setActiveTab(getDefaultTab(profile.role));
-    if (activeTab === 'my-courses' && profile.role !== 'teacher' && profile.role !== 'super_admin') setActiveTab(getDefaultTab(profile.role));
-    if (activeTab === 'parent' && profile.role !== 'parent') setActiveTab(getDefaultTab(profile.role));
+    if (activeTab === 'super-admin' && currentRole !== 'super_admin') setActiveTab(getDefaultTab(currentRole));
+    if (activeTab === 'school' && currentRole !== 'admin') setActiveTab(getDefaultTab(currentRole));
+    if (activeTab === 'my-courses' && currentRole !== 'teacher' && currentRole !== 'super_admin') setActiveTab(getDefaultTab(currentRole));
+    if (activeTab === 'parent' && currentRole !== 'parent') setActiveTab(getDefaultTab(currentRole));
     
     // If they are on dashboard but they are not a student, maybe they should be moved to their default tab?
     // The user said "avoid automatic moving of the user to dashboard", so we only move them if they are on a restricted tab.
-  }, [profile?.role]);
+  }, [currentRole]);
 
   const handleSelectCourse = (id: string) => {
     setSelectedCourseId(id);
@@ -87,7 +87,7 @@ export const MainApp: React.FC = () => {
       case 'super-admin':
         return <SuperAdminView />;
       case 'schools':
-        if (profile?.role === 'super_admin' || profile?.role === 'admin') {
+        if (currentRole === 'super_admin' || currentRole === 'admin') {
           return <ManagerDashboard onSelectSchool={() => setActiveTab('school')} />;
         }
         return <SchoolDirectoryView onSelectSchool={setViewingSchoolId} />;

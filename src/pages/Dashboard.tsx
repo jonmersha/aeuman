@@ -14,7 +14,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectExam, onBrowseSchools }) => {
-  const { profile, joinSchool } = useAuth();
+  const { profile, currentRole, joinSchool } = useAuth();
   const [recentResults, setRecentResults] = useState<any[]>([]);
   const [stats, setStats] = useState({ enrolled: 0, completed: 0, avgProgress: 0, points: 0 });
   const [recentCourses, setRecentCourses] = useState<any[]>([]);
@@ -320,7 +320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectCourse, onSelectEx
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold dark:text-white">Join a School</h2>
-              {profile?.role !== 'student' && (
+              {currentRole !== 'student' && (
                 <button 
                   onClick={onBrowseSchools}
                   className="text-xs font-bold text-purple-600 hover:underline flex items-center gap-1"

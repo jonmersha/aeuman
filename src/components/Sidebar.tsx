@@ -19,9 +19,9 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const { profile, logout } = useAuth();
+  const { profile, currentRole, logout } = useAuth();
   
-  const isSuperAdmin = profile?.role === 'super_admin';
+  const isSuperAdmin = currentRole === 'super_admin';
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -30,9 +30,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     { id: 'courses', label: 'Courses', icon: BookOpen },
     { id: 'marketplace', label: 'Marketplace', icon: Search },
     ...(isSuperAdmin ? [{ id: 'super-admin', label: 'Super Admin Panel', icon: Settings }] : []),
-    ...(profile?.role === 'admin' ? [{ id: 'school', label: 'School Manager Panel', icon: Settings }] : []),
-    ...(profile?.role === 'teacher' ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
-    ...(profile?.role === 'parent' ? [{ id: 'parent', label: 'Parent Portal', icon: Users }] : []),
+    ...(currentRole === 'admin' ? [{ id: 'school', label: 'School Manager Panel', icon: Settings }] : []),
+    ...(currentRole === 'teacher' ? [{ id: 'my-courses', label: 'Teaching', icon: GraduationCap }] : []),
+    ...(currentRole === 'parent' ? [{ id: 'parent', label: 'Parent Portal', icon: Users }] : []),
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
