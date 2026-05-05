@@ -137,6 +137,9 @@ service cloud.firestore {
              (!('academicStructure' in data) || data.academicStructure is string) &&
              (!('address' in data) || data.address is string) &&
              (!('contactPhone' in data) || data.contactPhone is string) &&
+             (!('logoUrl' in data) || data.logoUrl is string) &&
+             (!('bannerUrl' in data) || data.bannerUrl is string) &&
+             (!('description' in data) || data.description is string) &&
              (!('managerId' in data) || data.managerId is string);
     }
 

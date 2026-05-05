@@ -56,7 +56,23 @@ export const MainApp: React.FC = () => {
       return <ExamViewer examId={selectedExamId} onBack={() => setSelectedExamId(null)} />;
     }
     if (viewingSchoolId) {
-      return <SchoolProfileView schoolId={viewingSchoolId} onBack={() => setViewingSchoolId(null)} onSelectCourse={handleSelectCourse} />;
+      return <SchoolProfileView 
+        schoolId={viewingSchoolId} 
+        onBack={() => setViewingSchoolId(null)} 
+        onSelectCourse={handleSelectCourse} 
+        onManageSchool={async () => {
+          if (!profile?.uid) return;
+          try {
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('../firebase');
+            await setDoc(doc(db, 'users', profile.uid), { schoolId: viewingSchoolId }, { merge: true });
+            setViewingSchoolId(null);
+            setActiveTab('school');
+          } catch (e) {
+            console.error("Error setting active school", e);
+          }
+        }}
+      />;
     }
 
     switch (activeTab) {

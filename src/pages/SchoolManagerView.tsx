@@ -42,7 +42,7 @@ const SchoolManagerView: React.FC = () => {
   const [newClass, setNewClass] = useState({ name: '', grade: '', year: '', teacherId: '', schoolId: '' });
   const [newUser, setNewUser] = useState({ email: '', displayName: '', role: 'student' as any, classId: '', specialization: '', schoolId: '', isIndependent: false });
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [schoolForm, setSchoolForm] = useState({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12' });
+  const [schoolForm, setSchoolForm] = useState({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12', logoUrl: '', bannerUrl: '', description: '' });
 
   useEffect(() => {
     if (!profile || !profile.uid) return;
@@ -104,7 +104,10 @@ const SchoolManagerView: React.FC = () => {
           address: data.address || '',
           adminEmail: data.adminEmail || '',
           contactPhone: data.contactPhone || '',
-          academicStructure: data.academicStructure || 'K-12'
+          academicStructure: data.academicStructure || 'K-12',
+          logoUrl: data.logoUrl || '',
+          bannerUrl: data.bannerUrl || '',
+          description: data.description || ''
         });
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `schools/${currentSchoolId}`));
@@ -335,7 +338,7 @@ const SchoolManagerView: React.FC = () => {
       
       alert('School created successfully! It is now pending approval from a Super Admin.');
       setShowCreateSchool(false);
-      setSchoolForm({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12' });
+      setSchoolForm({ name: '', address: '', adminEmail: '', contactPhone: '', academicStructure: 'K-12', logoUrl: '', bannerUrl: '', description: '' });
       // The onSnapshot will update the managedSchools list
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'schools/new');
@@ -1169,6 +1172,40 @@ const SchoolManagerView: React.FC = () => {
                     className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold mb-2">Logo URL</label>
+                  <input 
+                    type="url" 
+                    value={schoolForm.logoUrl}
+                    onChange={(e) => setSchoolForm({...schoolForm, logoUrl: e.target.value})}
+                    placeholder="https://example.com/logo.png"
+                    className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-2">Banner URL</label>
+                  <input 
+                    type="url" 
+                    value={schoolForm.bannerUrl}
+                    onChange={(e) => setSchoolForm({...schoolForm, bannerUrl: e.target.value})}
+                    placeholder="https://example.com/banner.png"
+                    className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2">Description</label>
+                <textarea 
+                  rows={4}
+                  value={schoolForm.description}
+                  onChange={(e) => setSchoolForm({...schoolForm, description: e.target.value})}
+                  placeholder="Enter a brief description of the school..."
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent resize-none"
+                />
               </div>
 
               <div className="pt-4">

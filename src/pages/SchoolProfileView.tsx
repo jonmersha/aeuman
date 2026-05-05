@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, collection, addDoc, query, where, getDocs, Timestamp, setDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { School as SchoolIcon, MapPin, Globe, Mail, Phone, User, ArrowLeft, CheckCircle2, BookOpen, Search } from 'lucide-react';
+import { School as SchoolIcon, MapPin, Globe, Mail, Phone, User, ArrowLeft, CheckCircle2, BookOpen, Search, Settings } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 import { cn } from '../lib/utils';
 
@@ -10,9 +10,10 @@ interface SchoolProfileViewProps {
   schoolId: string;
   onBack: () => void;
   onSelectCourse: (id: string) => void;
+  onManageSchool?: () => void;
 }
 
-export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, onBack, onSelectCourse }) => {
+export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, onBack, onSelectCourse, onManageSchool }) => {
   const { profile } = useAuth();
   const [school, setSchool] = useState<any>(null);
   const [courses, setCourses] = useState<any[]>([]);
@@ -22,6 +23,11 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
   const [requestingRole, setRequestingRole] = useState<string | null>(null);
   const [courseSearch, setCourseSearch] = useState('');
   const [isEnrolling, setIsEnrolling] = useState<string | null>(null);
+  const [studentsCount, setStudentsCount] = useState<number>(0);
+
+  const isManager = profile?.role === 'super_admin' || 
+                   (profile?.role === 'admin' && profile?.schoolId === schoolId) || 
+                   school?.managerId === profile?.uid;
 
   useEffect(() => {
     const fetchSchoolAndStatus = async () => {
@@ -37,6 +43,14 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
         const coursesQ = query(collection(db, 'courses'), where('schoolId', '==', schoolId));
         const coursesSnap = await getDocs(coursesQ);
         setCourses(coursesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
+        // Fetch students count
+        if (profile && profile.uid) {
+          const studentsQ = query(collection(db, 'users'), where('schoolId', '==', schoolId));
+          const studentsSnap = await getDocs(studentsQ);
+          const stCount = studentsSnap.docs.filter(d => d.data().role === 'student').length;
+          setStudentsCount(stCount);
+        }
 
         if (profile && profile.uid) {
           // Fetch existing enrollments
@@ -150,7 +164,13 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
       </button>
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm">
-        <div className="h-48 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+        {school.bannerUrl ? (
+          <div className="h-48 bg-zinc-200 dark:bg-zinc-800 relative">
+             <img src={school.bannerUrl} alt="School Banner" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          </div>
+        ) : (
+          <div className="h-48 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+        )}
         <div className="px-8 pb-8 relative">
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-end -mt-16 mb-8">
             <div className="w-32 h-32 bg-white dark:bg-zinc-900 rounded-3xl p-2 shadow-lg shrink-0">
@@ -177,11 +197,32 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
                     {school.academicStructure}
                   </div>
                 )}
+                {studentsCount > 0 && (
+                  <div className="flex items-center gap-1 ml-2 pl-4 border-l border-zinc-200 dark:border-zinc-700">
+                    <User className="w-4 h-4" />
+                    {studentsCount} Students
+                  </div>
+                )}
+                {courses.length > 0 && (
+                  <div className="flex items-center gap-1 ml-2 pl-4 border-l border-zinc-200 dark:border-zinc-700">
+                    <BookOpen className="w-4 h-4" />
+                    {courses.length} Active Courses
+                  </div>
+                )}
               </div>
             </div>
             
             {profile && (
-              <div className="flex shrink-0">
+              <div className="flex shrink-0 gap-4">
+                {isManager && onManageSchool && (
+                  <button 
+                    onClick={onManageSchool}
+                    className="flex flex-col items-center justify-center gap-1 px-6 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl font-bold hover:bg-black dark:hover:bg-white transition-all shadow-md"
+                  >
+                    <Settings className="w-5 h-5 mb-0.5" />
+                    Manage School
+                  </button>
+                )}
                 {joinStatus === 'member' ? (
                   <div className="flex items-center gap-2 px-6 py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-2xl font-bold">
                     <CheckCircle2 className="w-5 h-5" />
