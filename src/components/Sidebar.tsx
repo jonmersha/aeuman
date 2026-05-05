@@ -25,7 +25,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    ...(profile?.schoolId ? [{ id: 'my-school', label: 'My School', icon: SchoolIcon }] : []),
+    { id: 'schools', label: 'Schools', icon: SchoolIcon },
+    ...((profile?.schoolIds && profile.schoolIds.length > 0) || profile?.schoolId ? [{ id: 'my-school', label: 'Active School', icon: SchoolIcon }] : []),
     { id: 'courses', label: 'Courses', icon: BookOpen },
     { id: 'marketplace', label: 'Marketplace', icon: Search },
     ...(isSuperAdmin ? [{ id: 'super-admin', label: 'Super Admin Panel', icon: Settings }] : []),

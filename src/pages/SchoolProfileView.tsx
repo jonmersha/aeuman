@@ -231,10 +231,42 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ schoolId, 
                   Manage School
                 </button>
               )}
+              {joinStatus === 'member' && profile?.schoolId !== schoolId && (
+                <button 
+                  onClick={async () => {
+                    const { doc, setDoc } = await import('firebase/firestore');
+                    const { db } = await import('../firebase');
+                    await setDoc(doc(db, 'users', profile.uid), { schoolId: schoolId }, { merge: true });
+                  }}
+                  className="flex items-center gap-2 px-6 py-3.5 bg-blue-600/20 backdrop-blur-md border border-blue-500/30 text-blue-300 rounded-2xl font-bold shadow-xl hover:bg-blue-600/30 transition-all"
+                >
+                  Set as Active
+                </button>
+              )}
+              {joinStatus === 'member' && (
+                <button 
+                  onClick={async () => {
+                    if (confirm("Are you sure you want to leave this school?")) {
+                      const { doc, setDoc } = await import('firebase/firestore');
+                      const { db } = await import('../firebase');
+                      const updatedSchoolIds = (profile.schoolIds || []).filter((id: string) => id !== schoolId);
+                      const updates: any = { schoolIds: updatedSchoolIds };
+                      if (profile.schoolId === schoolId) {
+                        updates.schoolId = updatedSchoolIds.length > 0 ? updatedSchoolIds[0] : null;
+                      }
+                      await setDoc(doc(db, 'users', profile.uid), updates, { merge: true });
+                      onBack();
+                    }
+                  }}
+                  className="flex items-center gap-2 px-6 py-3.5 bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-300 rounded-2xl font-bold shadow-xl hover:bg-red-500/30 transition-all"
+                >
+                  Leave School
+                </button>
+              )}
               {joinStatus === 'member' ? (
                 <div className="flex items-center gap-2 px-6 py-3.5 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-300 rounded-2xl font-bold shadow-xl">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  Member
+                  {profile?.schoolId === schoolId ? 'Active School' : 'Joined'}
                 </div>
               ) : joinStatus === 'pending' ? (
                 <div className="flex items-center gap-2 px-6 py-3.5 bg-amber-500/20 backdrop-blur-md border border-amber-500/30 text-amber-300 rounded-2xl font-bold shadow-xl">

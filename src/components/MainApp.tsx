@@ -92,15 +92,7 @@ export const MainApp: React.FC = () => {
         }
         return <SchoolDirectoryView onSelectSchool={setViewingSchoolId} />;
       case 'my-school':
-        if (profile?.schoolId) {
-          return <SchoolProfileView 
-            schoolId={profile.schoolId} 
-            onBack={() => setActiveTab(getDefaultTab(profile?.role))}
-            onSelectCourse={handleSelectCourse}
-            onManageSchool={() => setActiveTab('school')}
-          />;
-        }
-        return <SchoolDirectoryView onSelectSchool={setViewingSchoolId} />;
+        return <SchoolDirectoryView onSelectSchool={setViewingSchoolId} showOnlyJoined={true} />;
       case 'school':
         return <SchoolManagerView />;
       case 'my-courses':
